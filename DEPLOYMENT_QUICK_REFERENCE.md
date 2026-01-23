@@ -8,7 +8,7 @@ Copy and paste these into Render Dashboard → Environment:
 NODE_ENV=production
 PORT=10000
 MONGODB_URI=mongodb+srv://rahulgawade360_db_user:rahulgawadee@liahubtest.wv6su1v.mongodb.net/?appName=liahubtest
-JWT_ACCESS_SECRET=CHANGE_THIS_TO_SECURE_RANDOM_STRING_32_CHARS_MIN
+JWT_ACCESS_SECRET=k8SpRDKBgcUK53qmAMwUzooBAW5EWXPqEytzwmMFNlp
 JWT_REFRESH_SECRET=CHANGE_THIS_TO_ANOTHER_SECURE_RANDOM_STRING
 EMAIL_USER=rahulgawade360@gmail.com
 EMAIL_PASS=nsok gpan utbm bfny

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIA API Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #666;
+            margin-top: 30px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 5px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .badge-success { background: #4CAF50; color: white; }
+        .badge-error { background: #f44336; color: white; }
+        .badge-warning { background: #ff9800; color: white; }
+        .badge-info { background: #2196F3; color: white; }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 500px;
+            font-size: 14px;
+        }
+        .token-input {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 LIA Status & Offer Letter API Tester</h1>
+        <p>Use this tool to test if the backend is returning correct data for LIA applications.</p>
+
+        <div class="section">
+            <h2>📝 Setup</h2>
+            <div class="token-input">
+                <label for="token"><strong>Access Token:</strong></label><br>
+                <input type="text" id="token" placeholder="Paste your access token here or click 'Auto-detect'">
+                <button onclick="autoDetectToken()">🔍 Auto-detect from localStorage</button>
+            </div>
+            <p class="info" style="font-size: 12px;">
+                💡 Tip: Open your LIA page, press F12, go to Console, and type: <code>localStorage.getItem('accessToken')</code>
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>🧪 Tests</h2>
+            <button onclick="testMyApplications()">1️⃣ Test My Applications</button>
+            <button onclick="testAllLIAs()">2️⃣ Test All LIAs</button>
+            <button onclick="testFullFlow()">🚀 Run Full Test</button>
+            <button onclick="clearOutput()">🗑️ Clear Output</button>
+        </div>
+
+        <div class="section">
+            <h2>📊 Results</h2>
+            <div id="output" class="output">Ready to test! Click a button above to start.</div>
+        </div>
+
+        <div class="section">
+            <h2>✅ What to Check</h2>
+            <ul>
+                <li><strong>My Applications count:</strong> Should be > 0 if you've applied</li>
+                <li><strong>Status field:</strong> Should be 'selected', 'under_review', etc.</li>
+                <li><strong>offerLetter.sentOn:</strong> Must exist for offer badge to show</li>
+                <li><strong>offerLetter.duration:</strong> Required field for LIAs</li>
+                <li><strong>LIA ID matching:</strong> Application's liaId should match LIA._id</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+    const API_BASE = (typeof VITE_API_BASE_URL !== 'undefined' ? VITE_API_BASE_URL : '') || 'http://localhost:5000';
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const colors = {
+                success: '#4CAF50',
+                error: '#f44336',
+                warning: '#ff9800',
+                info: '#2196F3',
+                default: '#d4d4d4'
+            };
+            const color = colors[type] || colors.default;
+            output.innerHTML += `<span style="color: ${color}">${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            output.innerHTML = 'Output cleared. Ready for new tests!\n\n';
+        }
+
+        function autoDetectToken() {
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                document.getElementById('token').value = token;
+                log('✅ Token auto-detected from localStorage!', 'success');
+            } else {
+                log('❌ No token found in localStorage. Please login first or paste token manually.', 'error');
+            }
+        }
+
+        function getToken() {
+            return document.getElementById('token').value.trim();
+        }
+
+        async function testMyApplications() {
+            const token = getToken();
+            if (!token) {
+                log('❌ Please enter or auto-detect token first!', 'error');
+                return;
+            }
+
+            log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            log('🧪 TEST 1: My LIA Applications', 'info');
+            log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            
+            try {
+                log('📡 Calling: GET /lias/my/applications');
+                const response = await fetch(`${API_BASE}/lias/my/applications`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                log(`📥 Response Status: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Error Response: ${errorText}`, 'error');
+                    return;
+                }
+
+                const data = await response.json();
+                log(`✅ Success! Found ${data.items?.length || 0} application(s)\n`, 'success');
+
+                if (!data.items || data.items.length === 0) {
+                    log('⚠️ No applications found!', 'warning');
+                    log('   Possible reasons:', 'warning');
+                    log('   1. Student hasn\'t applied to any LIAs yet', 'warning');
+                    log('   2. Wrong user logged in (need student account)', 'warning');
+                    log('   3. Backend data issue\n', 'warning');
+                    return;
+                }
+
+                data.items.forEach((app, idx) => {
+                    log(`\n📋 Application ${idx + 1}:`, 'info');
+                    log(`   ID: ${app.id || app._id}`);
+                    log(`   LIA ID: ${app.lia?._id || app.lia?.id || app.liaId || 'MISSING'}`);
+                    log(`   LIA Title: ${app.lia?.title || 'N/A'}`);
+                    log(`   Status: ${app.status || 'NULL'} ${app.status ? '✅' : '❌'}`, app.status ? 'success' : 'error');
+                    log(`   Has Offer Letter: ${!!app.offerLetter ? 'Yes ✅' : 'No ❌'}`, app.offerLetter ? 'success' : 'warning');
+                    
+                    if (app.offerLetter) {
+                        log(`   Offer Details:`);
+                        log(`     - Start Date: ${app.offerLetter.startDate || 'N/A'}`);
+                        log(`     - Duration: ${app.offerLetter.duration || 'N/A'}`);
+                        log(`     - Sent On: ${app.offerLetter.sentOn || 'NULL ❌'}`, app.offerLetter.sentOn ? 'success' : 'error');
+                        log(`     - Note: ${app.offerLetter.note || 'N/A'}`);
+                        log(`     - PDF: ${app.offerLetter.pdfUrl || 'No PDF'}`);
+                        log(`     - Accepted On: ${app.offerLetter.acceptedOn || 'Not yet'}`);
+                        
+                        if (!app.offerLetter.sentOn) {
+                            log(`   ⚠️ WARNING: Offer exists but sentOn is NULL!`, 'error');
+                            log(`   → This will prevent the "Offer Received!" badge from showing!`, 'error');
+                        }
+                    }
+                });
+
+                log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                log('✅ Test Complete!\n', 'success');
+
+            } catch (error) {
+                log(`❌ Request Failed: ${error.message}`, 'error');
+                log(`   Check if backend is running on ${API_BASE}`, 'error');
+            }
+        }
+
+        async function testAllLIAs() {
+            const token = getToken();
+            if (!token) {
+                log('❌ Please enter or auto-detect token first!', 'error');
+                return;
+            }
+
+            log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            log('🧪 TEST 2: All LIAs', 'info');
+            log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            
+            try {
+                log('📡 Calling: GET /lias');
+                const response = await fetch(`${API_BASE}/lias`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                log(`📥 Response Status: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Error Response: ${errorText}`, 'error');
+                    return;
+                }
+
+                const data = await response.json();
+                log(`✅ Success! Found ${data.items?.length || 0} LIA(s)\n`, 'success');
+
+                if (!data.items || data.items.length === 0) {
+                    log('⚠️ No LIAs found!', 'warning');
+                    return;
+                }
+
+                data.items.slice(0, 3).forEach((lia, idx) => {
+                    log(`\n📋 LIA ${idx + 1}:`, 'info');
+                    log(`   ID: ${lia.id || lia._id}`);
+                    log(`   Title: ${lia.title}`);
+                    log(`   Company: ${lia.organization?.name || lia.company || 'N/A'}`);
+                    log(`   Location: ${lia.location || 'N/A'}`);
+                    log(`   Duration: ${lia.duration || 'N/A'}`);
+                    log(`   Status: ${lia.status || 'N/A'}`);
+                });
+
+                if (data.items.length > 3) {
+                    log(`\n   ... and ${data.items.length - 3} more LIAs`);
+                }
+
+                log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                log('✅ Test Complete!\n', 'success');
+
+            } catch (error) {
+                log(`❌ Request Failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFullFlow() {
+            clearOutput();
+            log('🚀 Running Full API Test Suite...\n\n', 'info');
+            
+            await testMyApplications();
+            log('\n\n');
+            await testAllLIAs();
+            
+            log('\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            log('📊 SUMMARY', 'info');
+            log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            log('✅ All API tests completed!', 'success');
+            log('\nWhat to check:', 'info');
+            log('1. If "My Applications: 0" → Student needs to apply first');
+            log('2. If status is NULL → Company needs to select student');
+            log('3. If offerLetter.sentOn is NULL → Company needs to send offer with sentOn date');
+            log('4. If all data looks good but badges don\'t show → Frontend rendering issue');
+            log('\n💡 Next step: Check browser console on LIA page for frontend logs!');
+        }
+
+        // Auto-detect token on load
+        window.addEventListener('DOMContentLoaded', () => {
+            autoDetectToken();
+        });
+    </script>
+</body>
+</html>

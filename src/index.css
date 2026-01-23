@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@layer base {
+		:root {
+			/* Modern, clean palette */
+			--background: 0 0% 3.9%; /* Almost black */
+			--foreground: 0 0% 98%; /* White */
+			--card: 0 0% 7%;
+			--card-foreground: 0 0% 98%;
+			--primary: 210 100% 50%;
+			--primary-foreground: 0 0% 0%;
+			--accent: 0 0% 12%;
+			--accent-foreground: 0 0% 98%;
+			--muted: 0 0% 14%;
+			--muted-foreground: 0 0% 63.9%;
+			--border: 0 0% 14.9%;
+			--input: 0 0% 14.9%;
+			--ring: 210 100% 50%;
+			--subtle-border: 0 0% 20%;
+		}
+		body { background-color: hsl(var(--background)); color: hsl(var(--foreground)); min-height: 100vh; }
+}
+
+@layer utilities {
+	.bg-background { background-color: hsl(var(--background)); }
+	.text-foreground { color: hsl(var(--foreground)); }
+	.bg-card { background-color: hsl(var(--card)); }
+	.text-card-foreground { color: hsl(var(--card-foreground)); }
+	.bg-accent { background-color: hsl(var(--accent)); }
+	.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+	.bg-primary { background-color: hsl(var(--primary)); }
+	.text-primary { color: hsl(var(--primary)); }
+	.text-primary-foreground { color: hsl(var(--primary-foreground)); }
+	.border-input { border-color: hsl(var(--input)); }
+	.border-subtle { border-color: hsl(var(--subtle-border)); }
+}
+/* In your global.css or index.css */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+body{
+  font-family: 'Inter', sans-serif;
+}
+
+/* ======================= Scrollbar Hiding (Global) ======================= */
+/* Completely hide scrollbars while preserving scroll behavior */
+html, body, * {
+	scrollbar-width: none; /* Firefox */
+	-ms-overflow-style: none; /* IE/Edge */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+	width: 0 !important;
+	height: 0 !important;
+	background: transparent;
+}
+
+/* Utility class (already referenced in components) */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* If you want to selectively re-enable a scrollbar somewhere, add class .allow-scrollbar */
+.allow-scrollbar { scrollbar-width: thin; }
+.allow-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.allow-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.allow-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--accent)); border-radius: 4px; }
+.neomorph-card {
+  background: #303030;
+  box-shadow: -22px -22px 51px #2a2a2a, 22px 22px 51px #363636;
+  border: 1px solid #000000;
+}
+
+.neomorph-button {
+  background: #303030;
+  box-shadow: -10px -10px 20px #2a2a2a, 10px 10px 20px #363636;
+  border: none;
+  color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.neomorph-button:hover {
+  box-shadow: -15px -15px 30px #2a2a2a, 15px 15px 30px #363636;
+}
+
+.neomorph-button:active {
+  box-shadow: inset -10px -10px 20px #2a2a2a, inset 10px 10px 20px #363636;
+}
+
+.neomorph-input:focus {
+  border: 1px solid rgba(33, 150, 243, 0.5);
+  outline: none;
+}
+
+.auth-background {
+  background: #2e2e2e;
+  min-height: 100vh;
+}
+
+

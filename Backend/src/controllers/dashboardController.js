@@ -76,7 +76,8 @@ const getUserProgrammes = async (userId) => {
 
 const rowMatchesProgramme = (row, programmes = []) => {
   if (!row) return false;
-  if (!programmes.length) return false;
+  // If no programmes are configured for the user, do not filter out any rows.
+  if (!programmes.length) return true;
   const candidate = normalizeProgrammeValue(row.programme || row.program);
   if (!candidate) return false;
   return programmes.includes(candidate);
@@ -679,6 +680,7 @@ const mapRecordToRow = (record) => {
     case 'lead_company':
       return {
         ...common,
+        date: normalizeCohortDate(data.date || ''),
         business: data.business || data.name || '',
         location: data.location || data.place || '',
         contactPerson: data.contactPerson || data.contact || '',
@@ -686,6 +688,13 @@ const mapRecordToRow = (record) => {
         companyEmail: data.companyEmail || data.email || '',
         phone: data.phone || data.contactNumber || '',
         orgNumber: data.orgNumber || '',
+        notes: data.notes || '',
+        assignmentProcess: data.assignmentProcess || '',
+        programme: data.programme || data.program || '',
+        educationLeader: data.educationLeader || '',
+        studentName: data.studentName || '',
+        studentEmail: data.studentEmail || '',
+        infoFromLeader: data.infoFromLeader || '',
         students: parseStudents(data.students),
       };
     case 'liahub_company':
@@ -905,7 +914,7 @@ const getStudentDashboard = async (req, res, next) => {
     const organizationFilter = organization ? { organization } : {};
     const recordQuery = {
       ...organizationFilter,
-      type: { $in: ['student', 'teacher', 'education_manager', 'admin', 'lead_company', 'liahub_company'] },
+      type: { $in: ['student', 'teacher', 'education_manager', 'admin', 'company', 'lead_company', 'liahub_company'] },
     };
 
     const [activePlacements, messageCount, recentNotifications, tableRecords, companies, staffUsers] = await Promise.all([
@@ -919,7 +928,7 @@ const getStudentDashboard = async (req, res, next) => {
 
     let effectiveRecords = tableRecords;
     if (!effectiveRecords || !effectiveRecords.length) {
-      effectiveRecords = await SchoolRecord.find({ type: { $in: ['student', 'teacher', 'education_manager', 'admin', 'lead_company', 'liahub_company'] } }).sort({ createdAt: -1 }).lean();
+      effectiveRecords = await SchoolRecord.find({ type: { $in: ['student', 'teacher', 'education_manager', 'admin', 'company', 'lead_company', 'liahub_company'] } }).sort({ createdAt: -1 }).lean();
     }
 
     const tables = buildTablesResponse(effectiveRecords);
@@ -1081,7 +1090,10 @@ const getStudentDashboard = async (req, res, next) => {
       };
     }));
 
-    tables.companies = enrichedCompanies;
+    if (!Array.isArray(tables.companies) || tables.companies.length === 0) {
+      // Only fall back to enriched organization companies when there are no uploaded company records
+      tables.companies = enrichedCompanies;
+    }
 
     const counts = {
       students: await SchoolRecord.countDocuments({ ...(organization ? { organization } : {}), type: 'student' }),
@@ -1281,7 +1293,10 @@ const createCompanyOrganizationAndUser = async (companyData, schoolOrganization)
 const createSchoolRecord = async (req, res, next) => {
   try {
     const organization = req.user.organization;
-    if (!organization) return res.status(400).json({ message: 'Organization context missing' });
+    const userId = (req.user._id || req.user.id || '').toString();
+    const roles = Array.isArray(req.user.roles) ? req.user.roles : [];
+    const isAdmin = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
+    const isEducationManager = roles.includes('education_manager');
 
     const { type, status, data } = req.body || {};
     if (!ALLOWED_RECORD_TYPES.has(type)) return res.status(400).json({ message: 'Unsupported record type' });
@@ -1497,7 +1512,10 @@ const updateSchoolRecord = async (req, res, next) => {
 const deleteSchoolRecord = async (req, res, next) => {
   try {
     const organization = req.user.organization;
-    if (!organization) return res.status(400).json({ message: 'Organization context missing' });
+    const roles = Array.isArray(req.user.roles) ? req.user.roles : [];
+    const isAdmin = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
+    const isEducationManager = roles.includes('education_manager');
+    const userId = (req.user._id || req.user.id || '').toString();
 
     const { id } = req.params;
     
@@ -1593,18 +1611,32 @@ const deleteSchoolRecord = async (req, res, next) => {
       userOrganization: organization
     });
 
-    const isSchoolAdmin = Array.isArray(req.user.roles) && req.user.roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
+    const isSchoolAdmin = isAdmin;
     if (recordWithoutOrgFilter.type === 'liahub_company' && !isSchoolAdmin) {
       return res.status(403).json({ message: 'Only school administrators can manage LiaHub companies' });
     }
     
-    // Check if record belongs to user's organization
-    if (recordWithoutOrgFilter.organization.toString() !== organization.toString()) {
+    // Allow assigned education manager or admins to delete student even if org missing/mismatched
+    const isAssignedStudentOwner =
+      recordWithoutOrgFilter.type === 'student' &&
+      recordWithoutOrgFilter.data &&
+      recordWithoutOrgFilter.data.assignedByUserId &&
+      userId &&
+      recordWithoutOrgFilter.data.assignedByUserId.toString() === userId;
+    const isStudentRecord = recordWithoutOrgFilter.type === 'student';
+    const hasStudentDeleteBypass = isStudentRecord && (isAdmin || isEducationManager || isAssignedStudentOwner);
+
+    // Check if record belongs to user's organization unless the user is allowed student bypass
+    if (recordWithoutOrgFilter.organization && organization && recordWithoutOrgFilter.organization.toString() !== organization.toString() && !hasStudentDeleteBypass) {
       logger.error('Record belongs to different organization:', {
         recordOrganization: recordWithoutOrgFilter.organization,
         userOrganization: organization
       });
       return res.status(403).json({ message: 'Access denied: Record belongs to a different organization' });
+    }
+    
+    if (!organization && !hasStudentDeleteBypass) {
+      return res.status(400).json({ message: 'Organization context missing' });
     }
     
     const record = recordWithoutOrgFilter;
@@ -1854,6 +1886,28 @@ const SWEDISH_TO_FIELD_MAP = {
   'Info från UL': 'infoFromLeader',
 };
 
+// Shared mapping for company / lead company Excel uploads
+const COMPANY_SWEDISH_TO_FIELD_MAP = {
+  Date: 'date',
+  Datum: 'date',
+  Företag: 'business',
+  'Ort/land': 'location',
+  'Ort/Land': 'location',
+  Kontaktperson: 'contactPerson',
+  Roll: 'role',
+  Mejl: 'companyEmail',
+  Telefon: 'phone',
+  'Ftg org/reg nr': 'orgNumber',
+  Notera: 'notes',
+  'Notering': 'notes',
+  'Tilldela/urvalsprocess': 'assignmentProcess',
+  'NBI/Handelsakadmin program': 'programme',
+  UL: 'educationLeader',
+  'Studerande Namn': 'studentName',
+  'Studerande mejladress (skola)': 'studentEmail',
+  'Info från UL': 'infoFromLeader',
+};
+
 const LIAHUB_SWEDISH_TO_FIELD_MAP = {
   Datum: 'date',
   Företag: 'business',
@@ -2093,6 +2147,98 @@ const uploadLiahubCompaniesExcel = async (req, res, next) => {
   }
 };
 
+// Generic uploader for company/lead company excel
+const uploadCompanyLikeExcel = async (req, res, next, { recordType }) => {
+  try {
+    const organization = req.user.organization;
+    if (!organization) return res.status(400).json({ message: 'Organization context missing' });
+    const isSchoolAdmin = Array.isArray(req.user.roles) && req.user.roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
+    if (!isSchoolAdmin) {
+      return res.status(403).json({ message: 'Only school administrators can upload companies' });
+    }
+    if (!req.file) return res.status(400).json({ message: 'No Excel file uploaded' });
+
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    if (!rawData || rawData.length === 0) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: 'Excel file is empty' });
+    }
+
+    const successRecords = [];
+    const failedRecords = [];
+
+    // Preload existing records to help with duplicate detection
+    const existing = await SchoolRecord.find({ organization, type: recordType }).lean();
+    const dedupeSet = new Set(
+      existing.map((rec) => {
+        const data = toDataObject(rec.data);
+        const keyParts = [asComparable(data.business), asComparable(data.orgNumber), asComparable(data.contactPerson), asComparable(data.companyEmail || data.email)];
+        return keyParts.filter(Boolean).join('|');
+      })
+    );
+
+    for (let i = 0; i < rawData.length; i++) {
+      const row = rawData[i];
+      try {
+        const mapped = {};
+        Object.keys(COMPANY_SWEDISH_TO_FIELD_MAP).forEach((swKey) => {
+          if (row[swKey] === undefined) return;
+          const targetKey = COMPANY_SWEDISH_TO_FIELD_MAP[swKey];
+          mapped[targetKey] = row[swKey] ? String(row[swKey]).trim() : '';
+        });
+
+        const sanitized = sanitizeDataPayload(recordType, mapped);
+        if (!sanitized.business) {
+          failedRecords.push({ rowNumber: i + 2, business: sanitized.business || 'Unknown', error: 'Missing company name' });
+          continue;
+        }
+
+        const dedupeKey = [asComparable(sanitized.business), asComparable(sanitized.orgNumber), asComparable(sanitized.companyEmail || sanitized.email)].filter(Boolean).join('|') || asComparable(sanitized.business);
+        if (dedupeSet.has(dedupeKey)) {
+          failedRecords.push({ rowNumber: i + 2, business: sanitized.business, error: 'Duplicate record' });
+          continue;
+        }
+
+        const record = await SchoolRecord.create({
+          organization,
+          type: recordType,
+          status: 'Active',
+          data: sanitized,
+        });
+
+        dedupeSet.add(dedupeKey);
+        successRecords.push({ rowNumber: i + 2, business: sanitized.business, id: record._id.toString() });
+      } catch (error) {
+        failedRecords.push({ rowNumber: i + 2, business: row['Företag'] || 'Unknown', error: error.message });
+      }
+    }
+
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+    const allRecords = await SchoolRecord.find({ organization, type: recordType }).sort({ createdAt: -1 }).lean();
+    const tables = buildTablesResponse(allRecords);
+    const sectionKey = recordType === 'lead_company' ? 'leadingCompanies' : 'companies';
+
+    res.json({
+      message: `${recordType === 'lead_company' ? 'Lead companies' : 'Companies'} upload processed`,
+      summary: { totalRows: rawData.length, successful: successRecords.length, failed: failedRecords.length },
+      successRecords,
+      failedRecords,
+      tables: tables[sectionKey],
+    });
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    next(error);
+  }
+};
+
+const uploadCompaniesExcel = (req, res, next) => uploadCompanyLikeExcel(req, res, next, { recordType: 'company' });
+const uploadLeadCompaniesExcel = (req, res, next) => uploadCompanyLikeExcel(req, res, next, { recordType: 'lead_company' });
+
 const deleteLiahubCompaniesByProgramme = async (req, res, next) => {
   try {
     const organization = req.user.organization;
@@ -2119,6 +2265,27 @@ const deleteLiahubCompaniesByProgramme = async (req, res, next) => {
     });
 
     res.json({ message: 'LiaHub companies deleted', deleted: result.deletedCount || 0 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteCompaniesByType = async (req, res, next) => {
+  try {
+    const { type = 'company' } = req.query;
+    const allowed = ['company', 'lead_company'];
+    if (!allowed.includes(type)) {
+      return res.status(400).json({ message: 'Invalid company type' });
+    }
+
+    const organization = req.user.organization;
+    const filter = { type };
+    if (organization) {
+      filter.organization = organization;
+    }
+
+    const result = await SchoolRecord.deleteMany(filter);
+    res.json({ message: 'Companies deleted', deleted: result.deletedCount || 0 });
   } catch (error) {
     next(error);
   }
@@ -2280,6 +2447,9 @@ module.exports = {
   rejectStudentAssignment,
   uploadStudentsExcel,
   uploadLiahubCompaniesExcel,
+  uploadCompaniesExcel,
+  uploadLeadCompaniesExcel,
+  deleteCompaniesByType,
   deleteLiahubCompaniesByProgramme,
 };
 

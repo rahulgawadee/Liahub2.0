@@ -80,6 +80,20 @@ router.post(
 );
 
 router.post(
+  "/school/upload-companies-excel",
+  authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
+  uploadExcel.single("excelFile"),
+  dashboardController.uploadCompaniesExcel
+);
+
+router.post(
+  "/school/upload-lead-companies-excel",
+  authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
+  uploadExcel.single("excelFile"),
+  dashboardController.uploadLeadCompaniesExcel
+);
+
+router.post(
   "/school/upload-liahub-companies-excel",
   authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
   uploadExcel.single("excelFile"),
@@ -90,6 +104,12 @@ router.delete(
   "/school/liahub-companies",
   authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
   dashboardController.deleteLiahubCompaniesByProgramme
+);
+
+router.delete(
+  "/school/companies",
+  authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
+  dashboardController.deleteCompaniesByType
 );
 
 module.exports = router;

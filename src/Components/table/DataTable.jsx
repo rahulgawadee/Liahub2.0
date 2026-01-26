@@ -39,6 +39,7 @@ import { Search, Upload, FileSpreadsheet, Edit, Trash2, Eye, User, GraduationCap
 import apiClient from '@/lib/apiClient'
 import VerificationBadge from '@/Components/shared/VerificationBadge'
 import { getImageUrl } from '@/lib/imageUtils'
+import { StatusCard } from '@/Components/ui/status-card'
 
 const STATUS_CLASSES = {
   Active: 'bg-emerald-500/15 text-emerald-300',
@@ -313,6 +314,7 @@ export default function DataTable() {
   const [programmeDialogOpen, setProgrammeDialogOpen] = React.useState(false)
   const [pendingProgrammeAction, setPendingProgrammeAction] = React.useState(null) // 'add' | 'upload' | 'deleteAll'
   const [selectedProgramme, setSelectedProgramme] = React.useState('')
+  const [liahubProgrammeFilter, setLiahubProgrammeFilter] = React.useState('')
 
   // Lazy render guard for table rows
   const tableRef = React.useRef(null)
@@ -349,6 +351,7 @@ export default function DataTable() {
     setProgrammeDialogOpen(false)
     setPendingProgrammeAction(null)
     setSelectedProgramme('')
+    setLiahubProgrammeFilter('')
   }, [active])
 
   React.useEffect(() => {
@@ -412,19 +415,42 @@ export default function DataTable() {
       })
   }, [sectionState?.data, columns, active, entity, normalizedCompanyName, userOrganizationId])
 
+  const liahubProgrammeChips = React.useMemo(() => {
+    if (!isSchoolAdmin || active !== SECTION_KEYS.liahubCompanies) return []
+    const seen = new Set()
+    const chips = []
+    rows.forEach((row) => {
+      const label = String(row.program || '').trim()
+      if (!label) return
+      const value = label.toLowerCase()
+      if (seen.has(value)) return
+      seen.add(value)
+      chips.push({ label, value })
+    })
+    chips.sort((a, b) => a.label.localeCompare(b.label))
+    return chips
+  }, [active, isSchoolAdmin, rows])
+
   const [visibleRowsLimit, setVisibleRowsLimit] = React.useState(50)
 
   const filteredRows = React.useMemo(() => {
+    let working = rows
+
+    if (active === SECTION_KEYS.liahubCompanies && liahubProgrammeFilter) {
+      const target = liahubProgrammeFilter.toLowerCase()
+      working = working.filter((row) => String(row.program || '').trim().toLowerCase() === target)
+    }
+
     const term = search.trim().toLowerCase()
-    if (!term) return rows
-    return rows.filter((row) =>
+    if (!term) return working
+    return working.filter((row) =>
       columns.some((column) => {
         const values = [row[column.key]]
         if (column.secondaryKey) values.push(row[column.secondaryKey])
         return values.some((value) => value && String(value).toLowerCase().includes(term))
       }),
     )
-  }, [rows, columns, search])
+  }, [rows, columns, search, active, liahubProgrammeFilter])
 
   const visibleRows = tableVisible ? filteredRows.slice(0, visibleRowsLimit) : []
 
@@ -448,6 +474,7 @@ export default function DataTable() {
   const error = sectionState?.error
   const mutationPending = sectionState?.mutationStatus === 'pending'
   const mutationError = sectionState?.mutationError
+  const [deleteSuccess, setDeleteSuccess] = React.useState(null)
 
   const allowAdd = canAddToSection(entity, active, roles)
   const allowEdit = canEditSection(entity, active, roles)
@@ -534,10 +561,20 @@ export default function DataTable() {
   )
 
   const handleDelete = React.useCallback(
-    (row) => {
+    async (row) => {
       if (!row?.id) return
       shouldRefreshRef.current = true
-      dispatch(deleteSchoolRecord({ sectionKey: active, id: row.id }))
+      setDetailOpen(false)
+      setDetailRow(null)
+      try {
+        await dispatch(deleteSchoolRecord({ sectionKey: active, id: row.id })).unwrap()
+        if (active === SECTION_KEYS.students) {
+          const studentName = row.name || row.studentName || 'Student'
+          setDeleteSuccess({ name: studentName })
+        }
+      } catch (err) {
+        console.error('Failed to delete record', err)
+      }
     },
     [active, dispatch],
   )
@@ -794,7 +831,8 @@ export default function DataTable() {
         data: response.data,
       })
 
-      dispatch(fetchStudentDashboard())
+      // Force refresh to bypass dashboard cache after upload
+      dispatch(fetchStudentDashboard(true))
     } catch (error) {
       setUploadResult({
         success: false,
@@ -829,17 +867,30 @@ export default function DataTable() {
     }
   }, [])
 
-  const handleDeleteAllLiahubCompanies = React.useCallback(async (programme) => {
-    if (!programme) return
-    const confirmed = window.confirm(`Delete all LiaHub companies for ${programme}? This cannot be undone.`)
+  const handleDeleteAllBySection = React.useCallback(async () => {
+    if (isLiahubCompanies && !selectedProgramme) return
+
+    const message = isLiahubCompanies
+      ? `Delete all LiaHub companies for ${selectedProgramme}? This cannot be undone.`
+      : active === SECTION_KEYS.companies
+        ? 'Delete all Companies? This cannot be undone.'
+        : 'Delete all Lead Companies? This cannot be undone.'
+
+    const confirmed = window.confirm(message)
     if (!confirmed) return
+
     try {
-      await apiClient.delete('/dashboard/school/liahub-companies', { params: { programme } })
+      if (isLiahubCompanies) {
+        await apiClient.delete('/dashboard/school/liahub-companies', { params: { programme: selectedProgramme } })
+      } else {
+        const type = active === SECTION_KEYS.companies ? 'company' : 'lead_company'
+        await apiClient.delete('/dashboard/school/companies', { params: { type } })
+      }
       dispatch(fetchStudentDashboard(true))
     } catch (err) {
-      console.error('Failed to delete LiaHub companies:', err)
+      console.error('Failed to delete companies:', err)
     }
-  }, [dispatch])
+  }, [active, isLiahubCompanies, selectedProgramme, dispatch])
 
   const handleProgrammeActionConfirm = React.useCallback(() => {
     if (!selectedProgramme) return
@@ -856,16 +907,16 @@ export default function DataTable() {
       return
     }
     if (action === 'deleteAll') {
-      handleDeleteAllLiahubCompanies(selectedProgramme)
+      handleDeleteAllBySection()
     }
-  }, [pendingProgrammeAction, selectedProgramme, openEditor, handleDeleteAllLiahubCompanies])
+  }, [pendingProgrammeAction, selectedProgramme, openEditor, handleDeleteAllBySection])
 
   if (!definition) {
     return <div className="p-4 text-sm text-muted-foreground">No section configured for this role.</div>
   }
 
   const showUploadButton = Boolean(uploadConfig && allowAdd)
-  const showDeleteAllButton = isLiahubCompanies && isSchoolAdmin
+  const showDeleteAllButton = isSchoolAdmin && (isLiahubCompanies || active === SECTION_KEYS.companies || active === SECTION_KEYS.leadingCompanies)
 
   const getSectionIcon = (sectionKey) => {
     const iconMap = {
@@ -921,6 +972,38 @@ export default function DataTable() {
           onDeleteAll={() => openProgrammeDialog('deleteAll')}
         />
 
+        {isSchoolAdmin && active === SECTION_KEYS.liahubCompanies && liahubProgrammeChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            <span className="text-xs text-muted-foreground">Filter by programme:</span>
+            {liahubProgrammeChips.map((chip) => {
+              const selected = liahubProgrammeFilter === chip.value
+              return (
+                <button
+                  key={chip.value}
+                  type="button"
+                  onClick={() => setLiahubProgrammeFilter((prev) => (prev === chip.value ? '' : chip.value))}
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                    selected
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted text-foreground border-border hover:border-primary/60'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              )
+            })}
+            {liahubProgrammeFilter && (
+              <button
+                type="button"
+                onClick={() => setLiahubProgrammeFilter('')}
+                className="rounded-full border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-primary/60"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="relative" ref={tableRef}>
           {loading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-card/80 backdrop-blur-sm">
@@ -965,7 +1048,12 @@ export default function DataTable() {
                         setDetailRow(row)
                         setDetailOpen(true)
                       }}
-                    >
+                      onClick={(e) => {
+                          if (e.target.closest('[data-no-detail-on-click]')) return
+                          setDetailRow(row)
+                          setDetailOpen(true)
+                        }}
+                      >
                       {columns.map((column) => {
                         const title = buildTitle(column, row)
                         const cellClasses = ['px-3 py-3 align-top']
@@ -983,7 +1071,7 @@ export default function DataTable() {
                         )
                       })}
                       {(rowAllowsEdit || active === SECTION_KEYS.liahubCompanies || isEducationManagerSection) && (
-                        <td className="px-4 py-4 text-right">
+                        <td className="px-4 py-4 text-right" data-no-detail-on-click>
                           <RowActions
                             onView={() => {
                               setDetailRow(row)
@@ -993,8 +1081,7 @@ export default function DataTable() {
                               e.stopPropagation()
                               handleEditClick(row)
                             }}
-                            onDelete={(e) => {
-                              e.stopPropagation()
+                            onDelete={() => {
                               handleDelete(row)
                             }}
                             disabled={mutationPending}
@@ -1066,6 +1153,17 @@ export default function DataTable() {
         columns={columns}
         definition={definition}
       />
+
+      {deleteSuccess && active === SECTION_KEYS.students && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <StatusCard
+            title="Student deleted"
+            description={`${deleteSuccess.name} has been removed from the dashboard.`}
+            actionLabel="Close"
+            onDismiss={() => setDeleteSuccess(null)}
+          />
+        </div>
+      )}
 
       <Dialog open={adminWarningOpen} onOpenChange={setAdminWarningOpen}>
         <DialogContent className="w-full max-w-md mx-auto text-left">

@@ -75,14 +75,14 @@ export const SidebarMenuItem = ({ children }) => <li className="relative">{child
 export const SidebarMenuButton = ({ children, asChild=false, size='md', tooltip, active=false }) => {
   const Comp = asChild? 'span':'button'
   // Increased left padding (pl-8) for more spacing from left edge; balanced with pr-4
-  return <Comp className={cn('w-full flex items-center gap-4 text-lg pl-8 pr-4 py-3 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors', size==='lg' && 'py-3 text-base font-medium', active && 'bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700')}>{children}</Comp>
+  return <Comp className={cn('w-full flex items-center gap-4 text-lg pl-8 pr-4 py-3 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors', size==='lg' && 'py-3 text-base font-medium', active && 'bg-neutral-500/10 dark:bg-neutral-700 hover:bg-neutral-500/10 dark:hover:bg-neutral-700')}>{children}</Comp>
 }
 export const SidebarMenuAction = ({ children, className='' }) => <button className={cn('absolute right-2 top-2 text-xs opacity-70 hover:opacity-100 transition-transform', className)}>{children}</button>
 export const SidebarMenuSub = ({ children }) => <ul className="pl-6 py-1 space-y-1">{children}</ul>
 export const SidebarMenuSubItem = ({ children }) => <li>{children}</li>
 export const SidebarMenuSubButton = ({ children, asChild=false, active=false }) => {
   const Comp = asChild? 'span':'button'
-  return <Comp className={cn("w-full flex text-xs items-center gap-2 px-2 py-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800", active && 'bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700')}>{children}</Comp>
+  return <Comp className={cn("w-full flex text-xs items-center gap-2 px-2 py-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800", active && 'bg-neutral-500/10 dark:bg-neutral-700 hover:bg-neutral-500/10 dark:hover:bg-neutral-700')}>{children}</Comp>
 }
 
 // Main content area: provide its own vertical scroll so sidebar stays static

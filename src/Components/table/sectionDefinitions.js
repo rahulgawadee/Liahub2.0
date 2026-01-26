@@ -281,28 +281,16 @@ export const SECTION_DEFINITIONS = {
 			title: 'Upload LiaHub Companies (Excel)',
 			endpoint: '/dashboard/school/upload-liahub-companies-excel',
 			adminOnly: true,
-			note: 'Include two "Mejl" columns: first for company contact, second for UL contact. Excel may rename the second as Mejl_1/Mejl__1 automatically.',
+			note: 'Flexible columns accepted. Recommended headers: Datum, Företag, Ort/land, Kontaktperson, Roll, Mejl, Telefon, Ftg org/reg nr.',
 			expectedColumns: [
-				'Datum',
+				'Date',
 				'Företag',
-				'Ort/Land',
+				'Ort/land',
 				'Kontaktperson',
 				'Roll',
 				'Mejl',
 				'Telefon',
 				'Ftg org/reg nr',
-				'Notering',
-				'Nästa steg / PRIO',
-				'Tilldela/urvalsprocess',
-				'NBI/Handelsakadmin program',
-				'UL',
-				'Mejl',
-				'Studerande Namn',
-				'Studerande mejladress',
-				'Info från UL',
-				'Nästa steg',
-				'JA',
-				'NEJ',
 			],
 		},
 		addEnabled: true,
@@ -419,7 +407,17 @@ export const SECTION_DEFINITIONS = {
 			title: 'Upload Companies (Excel)',
 			endpoint: '/dashboard/school/upload-companies-excel',
 			adminOnly: true,
-			expectedColumns: [],
+			note: 'Flexible columns accepted. Recommended headers: Datum, Företag, Ort/land, Kontaktperson, Roll, Mejl, Telefon, Ftg org/reg nr.',
+			expectedColumns: [
+				'Date',
+				'Företag',
+				'Ort/land',
+				'Kontaktperson',
+				'Roll',
+				'Mejl',
+				'Telefon',
+				'Ftg org/reg nr',
+			],
 		},
 		addEnabled: true,
 		defaultStatus: DEFAULT_STATUS,
@@ -537,15 +535,16 @@ export const getSectionsForEntity = (entity) => {
 
 export const canEditSection = (entity, sectionKey, roles = []) => {
 	const normalizedEntity = normalizeEntity(entity)
-	if (!normalizedEntity) return false
-	if (READ_ONLY_ENTITIES.has(normalizedEntity)) return false
+	if (normalizedEntity && READ_ONLY_ENTITIES.has(normalizedEntity)) return false
 	if (sectionKey === SECTION_KEYS.liahubCompanies) {
 		const isAdmin = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(normalizeRole(role)))
 		if (!isAdmin) return false
 	}
 	const hasRoleAccess = roles?.some((role) => EDIT_ROLES.has(normalizeRole(role)))
+	if (hasRoleAccess) return true
+	if (!normalizedEntity) return false
 	const hasEntityBypass = ENTITY_ALWAYS_EDIT.has(normalizedEntity)
-	if (!hasRoleAccess && !hasEntityBypass) return false
+	if (!hasEntityBypass) return false
 	const allowed = getSectionsForEntity(normalizedEntity)
 	return allowed.includes(sectionKey)
 }

@@ -8,7 +8,7 @@ const defaultBase = import.meta.env.VITE_API_BASE_URL || `${apiUrl}/api/v1`
 const api = axios.create({
   baseURL: defaultBase,
   withCredentials: useCredentials,
-  timeout: 30000, // 30 second timeout
+  timeout: 300000, // 5 minute timeout for large file uploads
 })
 
 let storeRef = null
@@ -92,7 +92,7 @@ api.interceptors.response.use(
       const refreshAxios = axios.create({
         baseURL: defaultBase,
         withCredentials: useCredentials,
-        timeout: 30000,
+        timeout: 300000, // 5 minute timeout
       })
 
       const { data } = await refreshAxios.post('/auth/refresh', { refreshToken })

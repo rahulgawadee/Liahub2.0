@@ -911,14 +911,16 @@ const getSchoolDashboard = async (req, res, next) => {
 const getStudentDashboard = async (req, res, next) => {
   try {
     const organization = req.user.organization;
-    const organizationFilter = organization ? { organization } : {};
+    // Admin users (platform_admin, university_admin) should see ALL records across all organizations
+    const isAdmin = Array.isArray(req.user?.roles) && req.user.roles.some(role => ['platform_admin', 'university_admin'].includes(role));
+    const organizationFilter = (organization && !isAdmin) ? { organization } : {};
     const recordQuery = {
       ...organizationFilter,
       type: { $in: ['student', 'teacher', 'education_manager', 'admin', 'company', 'lead_company', 'liahub_company'] },
     };
 
     const [activePlacements, messageCount, recentNotifications, tableRecords, companies, staffUsers] = await Promise.all([
-      JobPosting.countDocuments({ ...(organization ? { organization } : {}), status: 'open', type: { $in: ['job', 'internship'] } }),
+      JobPosting.countDocuments({ ...(organization && !isAdmin ? { organization } : {}), status: 'open', type: { $in: ['job', 'internship'] } }),
       Notification.countDocuments({ recipient: req.user.id, type: 'message', readAt: null }),
       Notification.find({ recipient: req.user.id }).sort({ createdAt: -1 }).limit(10).lean(),
       SchoolRecord.find(recordQuery).sort({ createdAt: -1 }).lean(),
@@ -1096,14 +1098,14 @@ const getStudentDashboard = async (req, res, next) => {
     }
 
     const counts = {
-      students: await SchoolRecord.countDocuments({ ...(organization ? { organization } : {}), type: 'student' }),
-      jobs: await JobPosting.countDocuments({ ...(organization ? { organization } : {}), type: { $ne: 'lia' } }),
-      lia: await JobPosting.countDocuments({ ...(organization ? { organization } : {}), type: 'lia' }),
+      students: await SchoolRecord.countDocuments({ ...(organization && !isAdmin ? { organization } : {}), type: 'student' }),
+      jobs: await JobPosting.countDocuments({ ...(organization && !isAdmin ? { organization } : {}), type: { $ne: 'lia' } }),
+      lia: await JobPosting.countDocuments({ ...(organization && !isAdmin ? { organization } : {}), type: 'lia' }),
       connections: await Connection.countDocuments({ status: 'accepted' }),
     };
 
     res.json({
-      liaEssential: (await LiaEssential.find({ ...(organization ? { organization } : {}), active: true }).sort({ updatedAt: -1 }).limit(1).lean())[0] || null,
+      liaEssential: (await LiaEssential.find({ ...(organization && !isAdmin ? { organization } : {}), active: true }).sort({ updatedAt: -1 }).limit(1).lean())[0] || null,
       tables,
       counts,
       messageCount: messageCount || 0,

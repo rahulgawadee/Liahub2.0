@@ -13,6 +13,12 @@ const bootstrap = async () => {
 		await connectDB();
 
 		const server = http.createServer(app);
+		
+		// Set server timeout to 15 minutes for large Excel uploads
+		server.timeout = 900000; // 15 minutes in milliseconds
+		server.keepAliveTimeout = 900000;
+		server.headersTimeout = 900000;
+		
 		initSocket(server);
 
 		server.listen(PORT, () => {

@@ -134,7 +134,7 @@ export const SECTION_DEFINITIONS = {
 				isCompanyDropdown: true,
 				dynamicOptions: true,
 			},
-			{ key: 'placement', label: 'Company (Företag)', type: 'text' },
+			{ key: 'placement', label: 'Company (Företag)', type: 'text', showAvatar: true, linkToProfile: true },
 			{ key: 'location', label: 'City/Country (Ort/land)', type: 'text' },
 			{ key: 'contactPerson', label: 'Contact Person (Kontaktperson)', type: 'text' },
 			{ key: 'role', label: 'Role (Roll)', type: 'text' },

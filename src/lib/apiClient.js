@@ -8,7 +8,7 @@ const defaultBase = import.meta.env.VITE_API_BASE_URL || `${apiUrl}/api/v1`
 const api = axios.create({
   baseURL: defaultBase,
   withCredentials: useCredentials,
-  timeout: 300000, // 5 minute timeout for large file uploads
+  timeout: 600000, // 10 minute timeout for large file uploads (increased from 5 minutes)
 })
 
 let storeRef = null

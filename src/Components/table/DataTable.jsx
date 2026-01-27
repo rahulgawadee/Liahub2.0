@@ -194,6 +194,48 @@ const renderCellContent = (column, row, onNavigate) => {
     )
   }
 
+  // Show company avatar for placement (Company) field in student section
+  if (column.key === 'placement' && row.sectionKey === SECTION_KEYS.students) {
+    if (column.showAvatar && column.linkToProfile) {
+      const companyId = row.assignedCompanyId || row._id
+      const imageUrl = row.companyImage || row.companyLogoUrl || row.avatarUrl || row.profileImage || row.avatar
+      const handleClick = (e) => {
+        e.stopPropagation()
+        if (companyId && onNavigate) {
+          onNavigate(`/profile/${companyId}`)
+        }
+      }
+      return (
+        <div className="flex items-center gap-2">
+          <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={companyId} onClick={handleClick} />
+        </div>
+      )
+    }
+
+    return renderValue(primaryValue)
+  }
+
+  // Show contact person avatar in company sections
+  if (column.key === 'contactPerson' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies)) {
+    if (column.showAvatar && column.linkToProfile) {
+      const contactId = row.contactPersonId || row._id
+      const imageUrl = row.contactPersonImage || row.contactImage || row.avatarUrl || row.profileImage || row.avatar
+      const handleClick = (e) => {
+        e.stopPropagation()
+        if (contactId && onNavigate) {
+          onNavigate(`/profile/${contactId}`)
+        }
+      }
+      return (
+        <div className="flex items-center gap-2">
+          <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={contactId} onClick={handleClick} />
+        </div>
+      )
+    }
+
+    return renderValue(primaryValue)
+  }
+
   if (column.secondaryKey) {
     const secondaryValue = row[column.secondaryKey]
     const secondaryLabel = column.secondaryLabel || 'Details'

@@ -743,7 +743,7 @@ const mapRecordToRow = (record) => {
         companyNotificationAt: data.companyNotificationAt || '',
         companyNotificationMethod: data.companyNotificationMethod || '',
         assignmentStatus: toTrimmedString(data.assignmentStatus).toLowerCase() || ASSIGNMENT_STATUS.PENDING,
-        assignedCompanyId: data.assignedCompanyId || '',
+        assignedCompanyId: record.assignedCompanyId ? String(record.assignedCompanyId) : (data.assignedCompanyId || ''),
         assignedCompanyName: data.assignedCompanyName || data.placement || '',
         assignedByUserId: data.assignedByUserId || '',
         assignedByName: data.assignedByName || '',
@@ -1370,6 +1370,8 @@ const createSchoolRecord = async (req, res, next) => {
       const assignedCompanyId = toTrimmedString(data?.assignedCompanyId || recordData.assignedCompanyId);
       if (assignedCompanyId) {
         recordData.assignedCompanyId = assignedCompanyId;
+        // Also set the assignedCompanyId field directly on the record
+        record.assignedCompanyId = assignedCompanyId;
       }
       const assignedCompanyName = toTrimmedString(data?.assignedCompanyName || recordData.assignedCompanyName || recordData.placement);
       if (assignedCompanyName) {
@@ -1498,6 +1500,17 @@ const updateSchoolRecord = async (req, res, next) => {
     existing.status = sanitizeStatus(status || existing.status);
     const sanitizedData = sanitizeDataPayload(existing.type, data || {}, existing.data);
   existing.set('data', sanitizedData);
+  
+  // Handle company assignment for students
+  if (existing.type === 'student') {
+    const assignedCompanyId = toTrimmedString(data?.assignedCompanyId || sanitizedData.assignedCompanyId);
+    if (assignedCompanyId) {
+      existing.assignedCompanyId = assignedCompanyId;
+    } else {
+      existing.assignedCompanyId = undefined;
+    }
+  }
+  
   await existing.save();
   await ensureStudentPlacementNotification({ record: existing, actor: req.user });
 
@@ -2435,6 +2448,87 @@ const updateLiaEssential = async (req, res, next) => {
   }
 };
 
+const getCompaniesForDropdown = async (req, res, next) => {
+  try {
+    const organization = req.user.organization;
+    if (!organization) {
+      return res.status(400).json({ message: 'Organization context missing' });
+    }
+
+    // Fetch all companies from SchoolRecord with type 'company' or 'liahub_company'
+    const companies = await SchoolRecord.find({
+      organization,
+      $or: [
+        { type: 'company' },
+        { type: 'liahub_company' },
+        { type: 'lead_company' }
+      ],
+      status: { $in: ['active', 'Active'] }
+    })
+    .select('_id type data status')
+    .lean()
+    .sort({ createdAt: -1 });
+
+    // Transform the data for dropdown
+    const transformedCompanies = companies
+      .map(company => {
+        try {
+          // Convert Map to plain object
+          const companyDataObj = company.data instanceof Map 
+            ? Object.fromEntries(company.data) 
+            : (typeof company.data === 'object' ? company.data : {});
+          
+          const name = 
+            companyDataObj.business || 
+            companyDataObj.name || 
+            companyDataObj.placement ||
+            '';
+          
+          const location = companyDataObj.location || '';
+
+          if (!name || name.trim() === '') {
+            return null;
+          }
+
+          return {
+            id: String(company._id),
+            name: String(name).trim(),
+            location: String(location).trim(),
+            type: company.type,
+            data: companyDataObj
+          };
+        } catch (e) {
+          console.error('Error transforming company:', e);
+          return null;
+        }
+      })
+      .filter(c => c !== null);
+
+    // Remove duplicates by name
+    const seenNames = new Set();
+    const uniqueCompanies = [];
+    for (const company of transformedCompanies) {
+      const nameKey = company.name.toLowerCase();
+      if (!seenNames.has(nameKey)) {
+        seenNames.add(nameKey);
+        uniqueCompanies.push(company);
+      }
+    }
+
+    res.json({
+      companies: uniqueCompanies,
+      total: uniqueCompanies.length
+    });
+  } catch (error) {
+    logger.error('Failed to fetch companies for dropdown:', {
+      error: error.message,
+      userId: req.user?.id,
+      organization: req.user?.organization
+    });
+    next(error);
+  }
+};
+
 module.exports = {
   getStudentDashboard,
   getSchoolDashboard,
@@ -2451,5 +2545,6 @@ module.exports = {
   uploadLeadCompaniesExcel,
   deleteCompaniesByType,
   deleteLiahubCompaniesByProgramme,
+  getCompaniesForDropdown,
 };
 

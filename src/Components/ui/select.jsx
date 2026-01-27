@@ -76,7 +76,8 @@ export const SelectValue = ({ value, placeholder = 'Select...' }) => {
 export const SelectContent = ({ children, className = '' }) => (
   <div className={cn(
     // Dropdown content should also be gray with white text
-    'absolute top-full z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-600 bg-background p-1 text-white shadow-md',
+    // max-h-60 ensures only the dropdown scrolls, not the whole page
+    'absolute top-full z-50 mt-1 max-h-60 min-w-[8rem] w-full overflow-y-auto rounded-md border border-gray-600 bg-background p-1 text-white shadow-md',
     className
   )}>
     {children}

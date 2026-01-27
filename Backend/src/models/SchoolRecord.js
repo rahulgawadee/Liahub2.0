@@ -27,6 +27,8 @@ const schoolRecordSchema = new Schema(
     status: { type: String, default: "active" },
     studentUser: { type: Schema.Types.ObjectId, ref: "User" },
     passwordGenerated: { type: Boolean, default: false },
+    assignedCompanyId: { type: Schema.Types.ObjectId, ref: "SchoolRecord" },
+    assignedCompanyName: { type: String },
   },
   { timestamps: true }
 );

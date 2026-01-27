@@ -57,10 +57,15 @@ export const deleteSchoolRecord = createAsyncThunk(
   'table/deleteSchoolRecord',
   async ({ sectionKey, id }, { rejectWithValue }) => {
     try {
-      const { data } = await api.delete(`/dashboard/school/records/${id}`)
-      return data
+      // Pass section as a hint to backend routing and return a normalized payload
+      const { data } = await api.delete(`/dashboard/school/records/${id}`, { params: { section: sectionKey } })
+      if (data && (data.sectionKey || data.id)) {
+        return data
+      }
+      // Fallback: ensure reducer receives keys to update local state
+      return { sectionKey, id }
     } catch (error) {
-      const message = error?.response?.data?.message || error?.message || 'Unable to delete record'
+      const message = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Unable to delete record'
       return rejectWithValue(message)
     }
   },
@@ -142,6 +147,16 @@ const tableSlice = createSlice({
           section.cacheValid = false
         }
       })
+    },
+    removeRecordLocally(state, { payload }) {
+      const { sectionKey, id } = payload || {}
+      if (!sectionKey || !id) return
+      const section = state.sections[sectionKey]
+      if (!section) return
+      section.data = section.data.filter((row) => row.id !== id)
+      section.pendingAssignments = section.pendingAssignments.filter((row) => row.id !== id)
+      section.mutationStatus = 'idle'
+      section.mutationError = null
     },
   },
   extraReducers: (builder) => {
@@ -391,6 +406,7 @@ const tableSlice = createSlice({
 })
 
 export const { setActiveSection, invalidateCache } = tableSlice.actions
+export const { removeRecordLocally } = tableSlice.actions
 
 export const selectStudentDashboard = (state) => state.table
 export const selectStats = (state) => state.table.stats

@@ -12,6 +12,7 @@ import {
   updateSchoolRecord,
   deleteSchoolRecord,
   fetchStudentDashboard,
+  removeRecordLocally,
 } from '@/redux/slices/tableSlice'
 import { selectAuth } from '@/redux/store'
 import {
@@ -562,12 +563,22 @@ export default function DataTable() {
 
   const handleDelete = React.useCallback(
     async (row) => {
-      if (!row?.id) return
+      const deleteId = row?.id || row?._id
+      if (!deleteId) return
       shouldRefreshRef.current = true
       setDetailOpen(false)
       setDetailRow(null)
       try {
-        await dispatch(deleteSchoolRecord({ sectionKey: active, id: row.id })).unwrap()
+        if (active === SECTION_KEYS.educationManagers) {
+          // Education managers are users; remove the 'education_manager' role to hide them from the dashboard
+          const roles = Array.isArray(row.roles) ? row.roles.slice() : []
+          const nextRoles = roles.filter((r) => r !== 'education_manager')
+          await apiClient.put(`/users/${deleteId}`, { roles: nextRoles })
+          // Remove locally without calling failing delete endpoint
+          dispatch(removeRecordLocally({ sectionKey: SECTION_KEYS.educationManagers, id: deleteId }))
+        } else {
+          await dispatch(deleteSchoolRecord({ sectionKey: active, id: deleteId })).unwrap()
+        }
         if (active === SECTION_KEYS.students) {
           const studentName = row.name || row.studentName || 'Student'
           setDeleteSuccess({ name: studentName })
@@ -726,14 +737,35 @@ export default function DataTable() {
     let mounted = true
     const fetchCompanies = async () => {
       try {
-        const resp = await apiClient.get('/organizations/companies')
+        const resp = await apiClient.get('/dashboard/school/companies-dropdown')
         if (!mounted) return
-        setCompaniesList(resp.data?.companies || [])
+        console.log('Fetched companies dropdown:', resp.data)
+        // Deduplicate incoming companies by id or normalized name
+        const incoming = Array.isArray(resp.data?.companies) ? resp.data.companies : []
+        console.log('Incoming companies:', incoming)
+        const seen = new Map()
+        const unique = []
+        for (const c of incoming) {
+          const id = c.id || c._id
+          const nameKey = String(c.name || '').toLowerCase().trim()
+          const key = id || nameKey
+          if (!seen.has(key)) {
+            seen.set(key, true)
+            unique.push(c)
+          }
+        }
+        // Sort by name for a clean dropdown
+        unique.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+        console.log('Unique companies:', unique)
+        setCompaniesList(unique)
       } catch (err) {
-        // ignore
+        console.error('Error fetching companies:', err)
       }
     }
     fetchCompanies()
+    return () => {
+      mounted = false
+    }
   }, [companiesListKey]) // Re-fetch when key changes
 
   // Function to refresh companies list for dynamic updates
@@ -770,39 +802,46 @@ export default function DataTable() {
   const applyCompanyAutofill = React.useCallback(async (companyId) => {
     if (!companyId) return
 
-    // Always fetch fresh company data for dynamic updates
-    try {
-      const resp = await apiClient.get(`/organizations/${companyId}`)
-      const org = resp.data?.organization
-      if (!org) return
-
+    // First try to find company in cached list
+    const cachedCompany = companiesList.find(c => (c.id || c._id) === companyId || String(c.id || c._id) === String(companyId))
+    
+    if (cachedCompany) {
+      // Use cached company data
+      const companyData = cachedCompany.data || {}
       setFormValues((prev) => ({
         ...prev,
-        placement: org.name || prev.placement,
-        location: (org.address && (org.address.city || org.address.country)) ? [org.address.city, org.address.country].filter(Boolean).join(', ') : prev.location,
-        contactPerson: org.metadata?.contactPerson || prev.contactPerson,
-        role: (org.metadata?.roles && org.metadata.roles.length) ? org.metadata.roles[0] : prev.role,
-        companyEmail: org.contact?.email || prev.companyEmail,
-        phone: org.contact?.phone || prev.phone,
-        orgNumber: org.metadata?.companyRegNo || prev.orgNumber,
+        placement: cachedCompany.name || companyData.business || companyData.name || prev.placement,
+        location: cachedCompany.location || companyData.location || prev.location,
+        contactPerson: companyData.contactPerson || companyData.contact || prev.contactPerson,
+        role: companyData.role || prev.role,
+        companyEmail: companyData.companyEmail || companyData.email || prev.companyEmail,
+        phone: companyData.phone || companyData.contactNumber || prev.phone,
+        orgNumber: companyData.orgNumber || prev.orgNumber,
       }))
-    } catch (err) {
-      // Fallback: try cached data if API fails
-      const cachedCompany = companiesList.find(c => c.id === companyId)
-      if (cachedCompany && cachedCompany.companyProfile) {
-        const profile = cachedCompany.companyProfile
+      return
+    }
 
-        setFormValues((prev) => ({
-          ...prev,
-          placement: cachedCompany.name || prev.placement,
-          location: [profile.city, profile.country].filter(Boolean).join(', ') || prev.location,
-          contactPerson: profile.contactPerson || prev.contactPerson,
-          role: profile.roles && profile.roles.length > 0 ? profile.roles[0] : prev.role,
-          companyEmail: profile.companyEmail || prev.companyEmail,
-          phone: profile.companyPhone || prev.phone,
-          orgNumber: profile.companyRegNo || prev.orgNumber,
-        }))
+    // Fallback: try to fetch from API if not in cache
+    try {
+      const resp = await apiClient.get(`/dashboard/school/companies-dropdown`)
+      if (resp.data?.companies) {
+        const found = resp.data.companies.find(c => (c.id || c._id) === companyId || String(c.id || c._id) === String(companyId))
+        if (found) {
+          const companyData = found.data || {}
+          setFormValues((prev) => ({
+            ...prev,
+            placement: found.name || companyData.business || companyData.name || prev.placement,
+            location: found.location || companyData.location || prev.location,
+            contactPerson: companyData.contactPerson || companyData.contact || prev.contactPerson,
+            role: companyData.role || prev.role,
+            companyEmail: companyData.companyEmail || companyData.email || prev.companyEmail,
+            phone: companyData.phone || companyData.contactNumber || prev.phone,
+            orgNumber: companyData.orgNumber || prev.orgNumber,
+          }))
+        }
       }
+    } catch (err) {
+      console.error('Failed to fetch company details:', err)
     }
   }, [companiesList])
 
@@ -833,6 +872,8 @@ export default function DataTable() {
 
       // Force refresh to bypass dashboard cache after upload
       dispatch(fetchStudentDashboard(true))
+      // Also refresh companies list so new organizations appear in the student form dropdown
+      refreshCompaniesList()
     } catch (error) {
       setUploadResult({
         success: false,
@@ -1044,15 +1085,11 @@ export default function DataTable() {
                     <tr
                       key={row.id}
                       className="h-[52px] rounded-xl transition-all hover:bg-primary/5 hover:shadow-[inset_1px_1px_3px_rgba(0,0,0,0.05)] cursor-pointer"
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (e.target.closest('[data-no-detail-on-click]')) return
                         setDetailRow(row)
                         setDetailOpen(true)
                       }}
-                      onClick={(e) => {
-                          if (e.target.closest('[data-no-detail-on-click]')) return
-                          setDetailRow(row)
-                          setDetailOpen(true)
-                        }}
                       >
                       {columns.map((column) => {
                         const title = buildTitle(column, row)
@@ -1384,69 +1421,109 @@ function RecordEditorDialog({
           <form onSubmit={onSubmit} className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               {formFields.map((field) => {
+                // When editing/adding students, render company picker UI for the companySelect field
+                if (definition?.recordType === 'student' && field.key === 'companySelect') {
+                  const selectedCompany = companiesList.find(c => (c.id || c._id) === values.companySelect)
+                  return (
+                    <div key={field.key} className="md:col-span-2 flex flex-col gap-3">
+                      <Label className="text-sm font-semibold flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        {field.label}
+                        {field.required ? <span className="text-destructive"> *</span> : null}
+                      </Label>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Select
+                              value={values.companySelect || ''}
+                              onChange={(event) => {
+                                const val = event.target.value
+                                onChange('companySelect', val)
+                                if (val) {
+                                  applyCompanyAutofill(val)
+                                }
+                              }}
+                              className="h-11 shadow-sm"
+                            >
+                              <SelectOption value="" className="text-muted-foreground italic">
+                                {companiesList.length === 0 ? '⚠️ No companies available - upload via Excel first' : '🏢 Select a company...'}
+                              </SelectOption>
+                              {companiesList.map((c) => (
+                                <SelectOption key={c.id || c._id} value={c.id || c._id} className="py-2">
+                                  🏢 {c.name}{c.location ? ` • ${c.location}` : ''}
+                                </SelectOption>
+                              ))}
+                            </Select>
+                          </div>
+                          <Button 
+                            type="button" 
+                            variant="outline"
+                            size="icon"
+                            className="h-11 w-11 shrink-0 hover:bg-primary/10 hover:border-primary transition-all"
+                            onClick={refreshCompaniesList}
+                            title="Refresh companies list"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </Button>
+                        </div>
+                        {selectedCompany && (
+                          <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="rounded-lg bg-primary/10 p-2">
+                                <Building2 className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm mb-1">{selectedCompany.name}</h4>
+                                {selectedCompany.location && (
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    {selectedCompany.location}
+                                  </p>
+                                )}
+                                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">✓ Details will be auto-filled below</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {companiesList.length === 0 && (
+                          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-amber-600 dark:text-amber-400">
+                            <p className="flex items-center gap-2">
+                              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              <span>Please upload companies via Excel first to see them in this dropdown</span>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+
                 // When editing/adding students, render company picker UI for the placement/company field
                 if (definition?.recordType === 'student' && field.key === 'placement') {
                   return (
                     <div key={field.key} className="flex flex-col gap-2">
-                      <Label>Company</Label>
-                      <div className="flex items-center gap-2">
-                        <select
-                          className="rounded-md border border-gray-600 bg-background text-white px-3 py-2"
-                          value={values.companySelect || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            // companySelect holds selected company id; we support single selection for autofill but chips show multiple if needed
-                            onChange('companySelect', val)
-                            if (val) {
-                              // apply autofill for selected company
-                              ;(async () => { await Promise.resolve(applyCompanyAutofill(val)) })()
-                            }
-                          }}
-                        >
-                          <option value="">— Select company —</option>
-                          {Array.isArray((values.companiesList || []))
-                            ? null
-                            : null}
-                          {/** Use companiesList passed via props (outer scope) */}
-                          {companiesList.map((c) => (
-                            <option key={c.id || c._id} value={c.id || c._id}>{c.name}</option>
-                          ))}
-                        </select>
-                        <button type="button" className="text-sm px-3 py-2 rounded border" onClick={() => {
-                          const selected = values.companySelect
-                          if (!selected) return
-                          // add to chips list
-                          const current = Array.isArray(values.selectedCompanies) ? values.selectedCompanies.slice() : []
-                          if (!current.includes(selected)) current.push(selected)
-                          onChange('selectedCompanies', current)
-                          // clear select
-                          onChange('companySelect', '')
-                        }}>Add</button>
-                        <button type="button" className="text-sm px-3 py-2 rounded border bg-blue-50 text-blue-700 hover:bg-blue-100" onClick={refreshCompaniesList} title="Refresh companies list">
-                          ↻
-                        </button>
-                      </div>
-
-                      {/* Chips for selected companies */}
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {Array.isArray(values.selectedCompanies) && values.selectedCompanies.length > 0 ? (
-                          values.selectedCompanies.map((id) => {
-                            const org = companiesList.find((c) => (c.id || c._id) === id)
-                            const label = org ? org.name : id
-                            return (
-                              <div key={id} className="inline-flex items-center gap-2 bg-muted/30 rounded-full px-3 py-1 text-sm">
-                                <span>{label}</span>
-                                <button type="button" onClick={() => {
-                                  const next = (values.selectedCompanies || []).filter(x => x !== id)
-                                  onChange('selectedCompanies', next)
-                                }} className="text-xs opacity-70">×</button>
-                              </div>
-                            )
-                          })
-                        ) : (
-                          <div className="text-muted-foreground text-sm">No companies selected</div>
-                        )}
-                      </div>
+                      <Label htmlFor={`field-${field.key}`}>
+                        {field.label}
+                        {field.required ? <span className="text-destructive"> *</span> : null}
+                      </Label>
+                      <Input
+                        id={`field-${field.key}`}
+                        type={field.type === 'number' ? 'number' : 'text'}
+                        value={values[field.key] ?? ''}
+                        onChange={(event) => onChange(field.key, event.target.value)}
+                        required={field.required}
+                        readOnly={true}
+                        placeholder="Auto-filled from company selection"
+                        className="bg-muted/50 cursor-not-allowed"
+                      />
+                      <p className="text-xs text-muted-foreground">{field.helpText || 'This field is automatically filled when you select a company above'}</p>
                     </div>
                   )
                 }
@@ -1512,34 +1589,27 @@ function RecordEditorDialog({
                       {field.required ? <span className="text-destructive"> *</span> : null}
                     </Label>
                     {isEducationLeaderField ? (
-                      <div className="space-y-2">
-                        <div className="rounded-2xl bg-background/60 p-3 shadow-[inset_2px_2px_6px_rgba(0,0,0,0.12),inset_-2px_-2px_6px_rgba(255,255,255,0.06)]">
-                          <select
-                            id={`field-${field.key}`}
-                            multiple
-                            disabled={!programmeValue}
-                            value={Array.isArray(values[field.key]) ? values[field.key] : values[field.key] ? [values[field.key]] : []}
-                            onChange={(event) => {
-                              const selected = Array.from(event.target.selectedOptions).map((opt) => opt.value)
-                              onChange(field.key, selected)
-                            }}
-                            className="w-full rounded-xl border border-transparent bg-transparent px-3 py-2 text-sm focus:outline-none"
-                          >
-                            {!programmeValue ? (
-                              <option value="">Select a programme first</option>
-                            ) : educationLeaderOptions.length ? (
-                              educationLeaderOptions.map((option) => (
-                                <option key={option} value={option}>{option}</option>
-                              ))
-                            ) : (
-                              <option value="">No UL found for selected programme</option>
-                            )}
-                          </select>
+                      !programmeValue ? (
+                        <div className="rounded-md border border-gray-600 bg-background/50 px-3 py-2 text-sm text-muted-foreground">
+                          Select a programme first
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Hold Ctrl/Cmd to select multiple ULs.
-                        </p>
-                      </div>
+                      ) : (
+                        <Select
+                          value={Array.isArray(values[field.key]) ? values[field.key][0] || '' : values[field.key] || ''}
+                          onChange={(event) => {
+                            onChange(field.key, event.target.value)
+                          }}
+                        >
+                          <SelectOption value="">
+                            {educationLeaderOptions.length ? 'Select UL' : 'No UL found for selected programme'}
+                          </SelectOption>
+                          {educationLeaderOptions.map((option) => (
+                            <SelectOption key={option} value={option}>
+                              {option}
+                            </SelectOption>
+                          ))}
+                        </Select>
+                      )
                     ) : field.type === 'select' ? (
                       <Select
                         id={`field-${field.key}`}

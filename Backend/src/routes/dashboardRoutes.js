@@ -112,4 +112,10 @@ router.delete(
   dashboardController.deleteCompaniesByType
 );
 
+router.get(
+  "/school/companies-dropdown",
+  authorize(PERMISSIONS.VIEW_SCHOOL_DASHBOARD),
+  dashboardController.getCompaniesForDropdown
+);
+
 module.exports = router;

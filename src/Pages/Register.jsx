@@ -30,14 +30,16 @@ export default function Register() {
   const entityConfig = AUTH_ENTITIES[entity]
   const registerFields = entityConfig.register.fields
   const initialForm = useMemo(() => buildInitialState(registerFields), [registerFields])
-    const visibleRegisterFields = useMemo(() => {
-      return registerFields.filter((field) => {
-        if (!field.when) return true
-        const { name, value } = field.when
-        return form[name] === value
-      })
-    }, [registerFields, form])
   const [form, setForm] = useState(initialForm)
+  
+  const visibleRegisterFields = useMemo(() => {
+    return registerFields.filter((field) => {
+      if (!field.when) return true
+      const { name, value } = field.when
+      return form[name] === value
+    })
+  }, [registerFields, form])
+  
   const [pendingForm, setPendingForm] = useState(null)
   const [otpValue, setOtpValue] = useState('')
   const [step, setStep] = useState('form')

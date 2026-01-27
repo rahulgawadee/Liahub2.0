@@ -127,6 +127,13 @@ export const SECTION_DEFINITIONS = {
 				inputMode: 'numeric',
 				maxLength: 8,
 			},
+			{ 
+				key: 'companySelect', 
+				label: 'Company (Select from list)', 
+				type: 'select',
+				isCompanyDropdown: true,
+				dynamicOptions: true,
+			},
 			{ key: 'placement', label: 'Company (Företag)', type: 'text' },
 			{ key: 'location', label: 'City/Country (Ort/land)', type: 'text' },
 			{ key: 'contactPerson', label: 'Contact Person (Kontaktperson)', type: 'text' },

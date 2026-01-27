@@ -4,7 +4,7 @@ import { selectAuth } from '@/redux/store'
 import { Button } from '@/Components/ui/button'
 import { Edit, Trash } from 'lucide-react'
 import api from '@/lib/apiClient'
-import { fetchStudentDashboard } from '@/redux/slices/tableSlice'
+import { fetchStudentDashboard, SECTION_KEYS, deleteSchoolRecord, removeRecordLocally } from '@/redux/slices/tableSlice'
 
 // currentUser is expected on state.currentUser (injected by parent)
 
@@ -40,20 +40,27 @@ export default function EducationalLeadersTable({ state }){
 										<Td>{r.contact}</Td>
 										<Td>{r.place}</Td>
 										<Td>{r.students}</Td>
-																				<Td>
-																						<div className="flex gap-1 justify-end">
-																								{canEditRow(currentUser, r) ? (
-																									<Button size="sm" variant="ghost" onClick={() => handleEdit(r)}>
-																										<Edit className="w-4 h-4" />
-																									</Button>
-																								) : (
-																									<Button size="sm" variant="ghost" disabled>
-																										<Edit className="w-4 h-4" />
-																									</Button>
-																								)}
-																								<Button size="sm" variant="ghost" className="text-red-500 hover:text-red-500"><Trash className="w-4 h-4" /></Button>
-																						</div>
-																				</Td>
+										<Td>
+											<div className="flex gap-1 justify-end">
+												{canEditRow(currentUser, r) ? (
+													<Button size="sm" variant="ghost" onClick={() => handleEdit(dispatch, r)}>
+														<Edit className="w-4 h-4" />
+													</Button>
+												) : (
+													<Button size="sm" variant="ghost" disabled>
+														<Edit className="w-4 h-4" />
+													</Button>
+												)}
+												<Button
+													size="sm"
+													variant="ghost"
+													className="text-red-500 hover:text-red-500"
+													onClick={() => handleDeleteEducationManager(dispatch, r)}
+												>
+													<Trash className="w-4 h-4" />
+												</Button>
+											</div>
+										</Td>
 									</tr>
 								))
 							)}
@@ -64,7 +71,7 @@ export default function EducationalLeadersTable({ state }){
 					{safeRows.length === 0 ? (
 						<div className="text-center text-sm text-muted-foreground">No records available</div>
 					) : (
-						safeRows.map((r) => <EduLeaderCard key={r.id} row={r} />)
+								safeRows.map((r) => <EduLeaderCard key={r.id} row={r} dispatch={dispatch} />)
 					)}
 			</div>
 		</div>
@@ -74,7 +81,7 @@ export default function EducationalLeadersTable({ state }){
 const Th = ({ children, className='' }) => <th className={`font-medium px-4 py-3 text-left whitespace-nowrap text-muted-foreground ${className}`}>{children}</th>
 const Td = ({ children, className='' }) => <td className={`px-4 py-3 align-top whitespace-nowrap ${className}`}>{children}</td>
 
-function EduLeaderCard({ row }){
+function EduLeaderCard({ row, dispatch }){
 	return (
 		<div className="rounded-lg border border-border p-4 bg-card shadow-sm">
 			<div className="flex items-start gap-3">
@@ -86,8 +93,15 @@ function EduLeaderCard({ row }){
 					<p className="text-sm text-muted-foreground break-all">{row.contact}</p>
 				</div>
 				<div className="flex gap-1 ml-auto">
-					<Button size="sm" variant="ghost"><Edit className="w-4 h-4" /></Button>
-					<Button size="sm" variant="ghost" className="text-red-500 hover:text-red-500"><Trash className="w-4 h-4" /></Button>
+					<Button size="sm" variant="ghost" onClick={() => handleEdit(dispatch, row)}><Edit className="w-4 h-4" /></Button>
+					<Button
+						size="sm"
+						variant="ghost"
+						className="text-red-500 hover:text-red-500"
+						onClick={() => handleDeleteEducationManager(dispatch, row)}
+					>
+						<Trash className="w-4 h-4" />
+					</Button>
 				</div>
 			</div>
 			<div className="mt-4 grid grid-cols-2 gap-4 text-sm">
@@ -125,7 +139,7 @@ function canEditRow(currentUser, row) {
 	return false
 }
 
-async function handleEdit(row) {
+async function handleEdit(dispatch, row) {
 	try {
 		const input = window.prompt('Enter JSON with fields to update (e.g. {"name": {"first":"New"}})')
 		if (!input) return
@@ -140,6 +154,20 @@ async function handleEdit(row) {
 	} catch (err) {
 		console.error(err)
 		alert(err?.response?.data?.error || err.message || 'Update failed')
+	}
+}
+
+async function handleDeleteEducationManager(dispatch, row) {
+	try {
+		const id = row?.id || row?._id
+		if (!id) return
+		const roles = Array.isArray(row.roles) ? row.roles.slice() : []
+		const nextRoles = roles.filter((r) => r !== 'education_manager')
+		await api.put(`/users/${id}`, { roles: nextRoles })
+		dispatch(removeRecordLocally({ sectionKey: SECTION_KEYS.educationManagers, id }))
+	} catch (err) {
+		console.error(err)
+		alert(err?.response?.data?.error || err?.response?.data?.message || err.message || 'Delete failed')
 	}
 }
 

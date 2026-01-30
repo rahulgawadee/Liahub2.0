@@ -65,8 +65,9 @@ const normalizeProgrammeValue = (value) => {
 };
 
 const getUserProgrammes = async (userId) => {
-  if (!userId) return [];
-  const user = await User.findById(userId).select('staffProfile roles').lean();
+  const id = userId || null;
+  if (!id) return [];
+  const user = await User.findById(id).select('staffProfile roles').lean();
   if (!user) return [];
   const staffProfile = user.staffProfile || {};
   const programme = staffProfile.programme || staffProfile.program || '';
@@ -78,7 +79,21 @@ const rowMatchesProgramme = (row, programmes = []) => {
   if (!row) return false;
   // If no programmes are configured for the user, do not filter out any rows.
   if (!programmes.length) return true;
-  const candidate = normalizeProgrammeValue(row.programme || row.program);
+
+  const tryGet = (obj, keys) => {
+    if (!obj) return '';
+    for (const k of keys) {
+      if (Object.prototype.hasOwnProperty.call(obj, k)) {
+        const v = obj[k];
+        if (v !== undefined && v !== null && String(v).trim() !== '') return String(v);
+      }
+    }
+    return '';
+  };
+
+  // Support multiple shapes: row.programme / row.program, row.data.programme, or raw data object
+  const candidateRaw = tryGet(row, ['programme', 'program']) || tryGet(row.data || {}, ['programme', 'program']) || tryGet(toDataObject(row) || {}, ['programme', 'program']);
+  const candidate = normalizeProgrammeValue(candidateRaw);
   if (!candidate) return false;
   return programmes.includes(candidate);
 };
@@ -696,6 +711,7 @@ const mapRecordToRow = (record) => {
         studentEmail: data.studentEmail || '',
         infoFromLeader: data.infoFromLeader || '',
         students: parseStudents(data.students),
+        quality: record.quality || data.quality || '',
       };
     case 'liahub_company':
       return {
@@ -720,6 +736,7 @@ const mapRecordToRow = (record) => {
         nextStep: data.nextStep || '',
         jaFlag: data.jaFlag || '',
         nejFlag: data.nejFlag || '',
+        quality: record.quality || data.quality || '',
       };
     case 'student':
       return {
@@ -785,15 +802,17 @@ const getSchoolDashboard = async (req, res, next) => {
   try {
     const organization = req.user.organization;
     const isEducationManager = Array.isArray(req.user.roles) && req.user.roles.includes('education_manager');
-    const educationManagerProgrammes = isEducationManager ? await getUserProgrammes(req.user.id) : [];
+    const currentUserId = (req.user && (req.user._id || req.user.id)) || null;
+    const educationManagerProgrammes = isEducationManager ? await getUserProgrammes(currentUserId) : [];
 
+    const liahubCompaniesQuery = isEducationManager ? { type: 'liahub_company' } : { organization, type: 'liahub_company' };
     const [lia, students, teachers, companies, leadCompanies, liahubCompanies, staffUsers] = await Promise.all([
       LiaEssential.find({ organization, active: true }).sort({ updatedAt: -1 }).limit(1).lean(),
       SchoolRecord.find({ organization, type: 'student' }).sort({ createdAt: -1 }).limit(100).lean(),
       SchoolRecord.find({ organization, type: 'teacher' }).sort({ createdAt: -1 }).limit(100).lean(),
       SchoolRecord.find({ organization, type: 'company' }).sort({ createdAt: -1 }).limit(100).lean(),
       SchoolRecord.find({ organization, type: 'lead_company' }).sort({ createdAt: -1 }).limit(100).lean(),
-      SchoolRecord.find({ organization, type: 'liahub_company' }).sort({ createdAt: -1 }).limit(200).lean(),
+      SchoolRecord.find(liahubCompaniesQuery).sort({ createdAt: -1 }).limit(200).lean(),
       User.find({
         organization,
         roles: { $in: ['school_admin', 'education_manager', 'teacher', 'university_admin', 'university_manager'] },
@@ -936,7 +955,8 @@ const getStudentDashboard = async (req, res, next) => {
     const tables = buildTablesResponse(effectiveRecords);
 
     const isEducationManager = Array.isArray(req.user?.roles) && req.user.roles.includes('education_manager');
-    const educationManagerProgrammes = isEducationManager ? await getUserProgrammes(req.user.id) : [];
+    const currentUserId2 = (req.user && (req.user._id || req.user.id)) || null;
+    const educationManagerProgrammes = isEducationManager ? await getUserProgrammes(currentUserId2) : [];
 
     if (isEducationManager) {
       if (Array.isArray(tables.students)) {
@@ -1360,7 +1380,7 @@ const createSchoolRecord = async (req, res, next) => {
       }
     }
 
-    const record = await SchoolRecord.create({ organization, type, status: sanitizeStatus(status), data: sanitizedData });
+    const record = await SchoolRecord.create({ organization, type, status: sanitizeStatus(status), data: sanitizedData, quality: data?.quality || '' });
 
     if (type === 'student') {
       const recordData = mapToPlainObject(record.data);
@@ -1502,6 +1522,11 @@ const updateSchoolRecord = async (req, res, next) => {
     existing.status = sanitizeStatus(status || existing.status);
     const sanitizedData = sanitizeDataPayload(existing.type, data || {}, existing.data);
   existing.set('data', sanitizedData);
+  
+  // Store quality field for company-related records
+  if (['company', 'lead_company', 'liahub_company'].includes(existing.type) && data?.quality !== undefined) {
+    existing.quality = data.quality || '';
+  }
   
   // Handle company assignment for students
   if (existing.type === 'student') {

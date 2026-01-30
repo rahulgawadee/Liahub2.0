@@ -83,8 +83,8 @@ export default function ExploreSearchBar({ value, onChange, onSearch, locations 
       {/* Search and Filters */}
       <div className="rounded-2xl bg-card shadow-sm p-5 grid grid-cols-1 md:grid-cols-4 gap-4 items-center transition-all hover:shadow-md">
         <div className="md:col-span-2 flex items-center gap-3">
-          <div className="flex-shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10 text-primary">
-            <Search className="h-6 w-6" />
+          <div className="flex-shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-xl bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm border border-white/10 text-blue-600">
+            <Search className="h-6 w-6 text-blue-500" />
           </div>
           <Input 
             placeholder="Search companies, people, or roles..." 
@@ -95,8 +95,8 @@ export default function ExploreSearchBar({ value, onChange, onSearch, locations 
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-xl bg-muted/50 text-muted-foreground">
-            <MapPin className="h-5 w-5" />
+          <div className="flex-shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-xl bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm border border-white/10 text-blue-600">
+            <MapPin className="h-5 w-5 text-blue-500" />
           </div>
           <div className="relative w-full">
             <select 
@@ -114,8 +114,8 @@ export default function ExploreSearchBar({ value, onChange, onSearch, locations 
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-xl bg-muted/50 text-muted-foreground">
-            <Briefcase className="h-5 w-5" />
+          <div className="flex-shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-xl bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm border border-white/10 text-blue-600">
+            <Briefcase className="h-5 w-5 text-blue-500" />
           </div>
           <div className="relative w-full">
             <select 
@@ -137,41 +137,41 @@ export default function ExploreSearchBar({ value, onChange, onSearch, locations 
       {hasActiveFilters && (
         <div className="flex flex-wrap gap-2 items-center px-1">
             <div className="text-sm text-muted-foreground mr-2 flex items-center gap-1">
-                <Filter className="h-3 w-3" />
-                <span>Filters:</span>
+              <Filter className="h-3 w-3 text-blue-500" />
+              <span>Filters:</span>
             </div>
           {kw.trim() && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/10 transition-colors hover:bg-primary/15">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm text-blue-700 rounded-full text-sm font-medium border border-white/10">
               <span>{kw}</span>
               <button
                 onClick={handleClearKeyword}
-                className="ml-1 hover:bg-primary/20 rounded-full p-0.5 transition"
+                className="ml-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-full p-0.5 transition"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 text-blue-500" />
               </button>
             </div>
           )}
           {location !== 'all' && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium border border-blue-100 dark:border-blue-900/30">
-              <MapPin className="h-3.5 w-3.5" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm text-blue-700 rounded-full text-sm font-medium border border-white/10">
+              <MapPin className="h-3.5 w-3.5 text-blue-500" />
               <span>{location}</span>
               <button
                 onClick={clearLocation}
-                className="ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5 transition"
+                className="ml-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-full p-0.5 transition"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 text-blue-500" />
               </button>
             </div>
           )}
           {industry !== 'all' && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-full text-sm font-medium border border-purple-100 dark:border-purple-900/30">
-               <Briefcase className="h-3.5 w-3.5" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm text-blue-700 rounded-full text-sm font-medium border border-white/10">
+               <Briefcase className="h-3.5 w-3.5 text-blue-500" />
               <span>{industry}</span>
               <button
                 onClick={clearIndustry}
-                className="ml-1 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full p-0.5 transition"
+                className="ml-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-full p-0.5 transition"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 text-blue-500" />
               </button>
             </div>
           )}

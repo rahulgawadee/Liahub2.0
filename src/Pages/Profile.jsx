@@ -95,7 +95,11 @@ export default function Profile(){
               <div className="relative h-48 bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center overflow-hidden z-0">
                 {/* Center the cover only for the main column */}
                 <div className="absolute inset-0 w-full z-0">
-                  {profile.coverUrl? <img key={profile.coverUrl} src={getImageUrl(profile.coverUrl)} alt="cover" className="h-full w-full object-cover" /> : <div className="flex items-center justify-center h-full text-sm opacity-60">No cover photo</div>}
+                  {profile.coverUrl ? (
+                    <img key={profile.coverUrl} src={getImageUrl(profile.coverUrl)} alt="cover" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-black text-white text-sm font-medium">No Cover image yet</div>
+                  )}
                 </div>
               </div>
               {/* Avatar + Edit */}

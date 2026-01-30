@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/card'
 import { Button } from '@/Components/ui/button'
 import { X } from 'lucide-react'
 
-export const Dialog = ({ open, onOpenChange, children }) => {
+export const Dialog = ({ open, onOpenChange, children, allowOverflow = false }) => {
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
@@ -24,16 +25,17 @@ export const Dialog = ({ open, onOpenChange, children }) => {
 
   if (!open) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        className="absolute inset-0 bg-black/85 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-10 max-h-[90vh] max-w-4xl w-full mx-auto overflow-auto">
+      <div className={`relative z-[10000] max-h-[90vh] max-w-4xl w-full mx-auto ${allowOverflow ? 'overflow-visible' : 'overflow-auto'}`}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

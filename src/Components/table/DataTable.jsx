@@ -1,4 +1,5 @@
 import React from 'react'
+import { useState, useRef, useEffect,useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import DatePicker from 'react-datepicker'
@@ -36,7 +37,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { Label } from '@/Components/ui/label'
 import { Select, SelectOption } from '@/Components/ui/select'
 import { Avatar, AvatarImage, AvatarFallback } from '@/Components/ui/avatar'
-import { Search, Upload, FileSpreadsheet, Edit, Trash2, Eye, User, GraduationCap, Users, BookOpen, Shield, Building2, Briefcase, Building } from 'lucide-react'
+import { Search, Upload, FileSpreadsheet, Edit, Trash2, Eye, User, GraduationCap, Users, BookOpen, Shield, Building2, Briefcase, Building, Filter, X, ChevronDown, ArrowRight, Loader2 } from 'lucide-react'
 import apiClient from '@/lib/apiClient'
 import VerificationBadge from '@/Components/shared/VerificationBadge'
 import { getImageUrl } from '@/lib/imageUtils'
@@ -71,14 +72,14 @@ const formatColumnValue = (column, value) => {
 
 const AvatarCell = ({ value, imageUrl, userId, onClick }) => {
   return (
-    <div className="flex items-center gap-2">
-      <Avatar className="h-7 w-7 cursor-pointer" onClick={onClick}>
+    <div className="flex items-center gap-2 min-w-0">
+      <Avatar className="h-7 w-7 flex-shrink-0 cursor-pointer" onClick={onClick}>
         <AvatarImage src={imageUrl ? getImageUrl(imageUrl) : undefined} alt={value} />
         <AvatarFallback className="text-xs">
           {value ? value.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
         </AvatarFallback>
       </Avatar>
-      <span className="cursor-pointer hover:underline" onClick={onClick}>{value || '—'}</span>
+      <span className="cursor-pointer hover:underline truncate" onClick={onClick} title={value}>{value || '—'}</span>
     </div>
   )
 }
@@ -126,7 +127,7 @@ const renderCellContent = (column, row, onNavigate) => {
         }
       }
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
           {isVerified ? (
             <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300">
@@ -146,8 +147,8 @@ const renderCellContent = (column, row, onNavigate) => {
     }
 
     return (
-      <div className="flex items-center gap-2">
-        {renderValue(primaryValue)}
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="truncate">{renderValue(primaryValue)}</span>
         {isVerified ? (
           <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300">
             Verified
@@ -166,7 +167,7 @@ const renderCellContent = (column, row, onNavigate) => {
   }
 
   // Show verification badge for company business name if verified
-  if (column.key === 'business' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies)) {
+  if (column.key === 'business' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)) {
     const verified = row.verified || row.contractSigned
     
     if (column.showAvatar && column.linkToProfile) {
@@ -179,16 +180,30 @@ const renderCellContent = (column, row, onNavigate) => {
         }
       }
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
+          {row.quality ? (
+            <span
+              className={`w-3 h-3 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
+              title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+              style={{ boxShadow: row.quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : row.quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
+            />
+          ) : null}
           {verified ? <VerificationBadge verified={true} size="sm" /> : null}
         </div>
       )
     }
 
     return (
-      <div className="flex items-center gap-2">
-        {renderValue(primaryValue)}
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="truncate">{renderValue(primaryValue)}</span>
+        {row.quality ? (
+          <span
+            className={`w-3 h-3 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
+            title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+            style={{ boxShadow: row.quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : row.quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
+          />
+        ) : null}
         {verified ? <VerificationBadge verified={true} size="sm" /> : null}
       </div>
     )
@@ -206,7 +221,7 @@ const renderCellContent = (column, row, onNavigate) => {
         }
       }
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={companyId} onClick={handleClick} />
         </div>
       )
@@ -227,7 +242,7 @@ const renderCellContent = (column, row, onNavigate) => {
         }
       }
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={contactId} onClick={handleClick} />
         </div>
       )
@@ -328,14 +343,17 @@ export default function DataTable() {
   const definition = SECTION_DEFINITIONS[active]
   const uploadConfig = definition?.upload || null
   const sectionState = useSelector(selectSectionData(active))
-  const columns = definition?.columns || []
+  const columns = (definition?.columns || []).filter(col => col.key !== 'companySelect')
   const statusOptions = React.useMemo(() => getStatusOptions(), [])
 
   const [search, setSearch] = React.useState('')
+  const [programmeFilter, setProgrammeFilter] = React.useState('')
+  const [filterDropdownOpen, setFilterDropdownOpen] = React.useState(false)
   const [editorOpen, setEditorOpen] = React.useState(false)
   const [editorMode, setEditorMode] = React.useState('add') // 'add' | 'edit'
   const [formValues, setFormValues] = React.useState({})
   const [selectedRow, setSelectedRow] = React.useState(null)
+  const [movingRowId, setMovingRowId] = React.useState(null)
   const hasPendingSubmissionRef = React.useRef(false)
   const shouldRefreshRef = React.useRef(false)
   const lastFetchKeyRef = React.useRef(null)
@@ -476,8 +494,29 @@ export default function DataTable() {
 
   const [visibleRowsLimit, setVisibleRowsLimit] = React.useState(50)
 
+  // Extract unique programme values from students data for filter
+  const availableProgrammes = React.useMemo(() => {
+    if (active !== SECTION_KEYS.students) return []
+    const seen = new Set()
+    const programmes = []
+    rows.forEach((row) => {
+      const prog = String(row.programme || row.program || '').trim()
+      if (prog && !seen.has(prog.toLowerCase())) {
+        seen.add(prog.toLowerCase())
+        programmes.push(prog)
+      }
+    })
+    return programmes.sort((a, b) => a.localeCompare(b))
+  }, [rows, active])
+
   const filteredRows = React.useMemo(() => {
     let working = rows
+
+    // Apply programme filter for students section
+    if (active === SECTION_KEYS.students && programmeFilter) {
+      const target = programmeFilter.toLowerCase()
+      working = working.filter((row) => String(row.programme || row.program || '').trim().toLowerCase() === target)
+    }
 
     if (active === SECTION_KEYS.liahubCompanies && liahubProgrammeFilter) {
       const target = liahubProgrammeFilter.toLowerCase()
@@ -493,13 +532,15 @@ export default function DataTable() {
         return values.some((value) => value && String(value).toLowerCase().includes(term))
       }),
     )
-  }, [rows, columns, search, active, liahubProgrammeFilter])
+  }, [rows, columns, search, active, liahubProgrammeFilter, programmeFilter])
 
   const visibleRows = tableVisible ? filteredRows.slice(0, visibleRowsLimit) : []
 
-  // Reset limit when switching sections or search changes
+  // Reset limit when switching sections or search/filter changes
   React.useEffect(() => {
     setVisibleRowsLimit(50)
+    setProgrammeFilter('')
+    setFilterDropdownOpen(false)
   }, [active, search])
 
   // Auto-load all rows progressively without user interaction
@@ -630,6 +671,58 @@ export default function DataTable() {
       }
     },
     [active, dispatch],
+  )
+
+  const handleMoveToCompanies = React.useCallback(
+    async (row) => {
+      const recordId = row?.id || row?._id
+      if (!recordId) return
+      
+      setMovingRowId(recordId)
+      shouldRefreshRef.current = true
+      setDetailOpen(false)
+      setDetailRow(null)
+      
+      try {
+        // Create new company record with data from liahub company
+        const companyData = {
+          business: row.business,
+          location: row.location,
+          contactPerson: row.contactPerson,
+          role: row.role,
+          companyEmail: row.contactEmail,
+          phone: row.phone,
+          orgNumber: row.orgNumber,
+          students: row.students || 0,
+          date: row.date || '',
+        }
+        
+        // Add to companies table
+        await dispatch(createSchoolRecord({ 
+          sectionKey: SECTION_KEYS.companies, 
+          payload: {
+            type: 'company',
+            status: 'active',
+            data: companyData
+          }
+        })).unwrap()
+        
+        // Delete from liahub companies
+        await dispatch(deleteSchoolRecord({ 
+          sectionKey: SECTION_KEYS.liahubCompanies, 
+          id: recordId 
+        })).unwrap()
+        
+        // Show success message
+        alert(`Successfully moved "${row.business}" to Companies table`)
+      } catch (err) {
+        console.error('Failed to move company', err)
+        alert('Failed to move company. Please try again.')
+      } finally {
+        setMovingRowId(null)
+      }
+    },
+    [dispatch],
   )
 
   const handleSubmit = React.useCallback(
@@ -1015,33 +1108,34 @@ export default function DataTable() {
   }
 
   return (
-    <div className="flex flex-col rounded-3xl bg-card shadow-[4px_4px_12px_rgba(0,0,0,0.1),-4px_-4px_12px_rgba(255,255,255,0.05)]">
-      <div className="flex flex-wrap justify-center gap-2 p-4">{allowedSections.map((sectionKey) => {
-          const def = SECTION_DEFINITIONS[sectionKey]
-          if (!def) return null
-          const isActive = sectionKey === active
-          const IconComponent = getSectionIcon(sectionKey)
-          return (
-            <button
-              key={sectionKey}
-              onClick={() => dispatch(setActiveSection(sectionKey))}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-all flex items-center gap-2 ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-[inset_2px_2px_5px_rgba(0,0,0,0.15),inset_-2px_-2px_5px_rgba(255,255,255,0.05)]'
-                  : 'bg-muted/70 text-muted-foreground shadow-[2px_2px_5px_rgba(0,0,0,0.1),-2px_-2px_5px_rgba(255,255,255,0.05)] hover:shadow-[inset_1px_1px_3px_rgba(0,0,0,0.1),inset_-1px_-1px_3px_rgba(255,255,255,0.05)] hover:text-foreground'
-              }`}
-              type="button"
-            >
-              <IconComponent className="h-4 w-4" />
-              {def.label}
-            </button>
-          )
-        })}
-      </div>
+    <>
+      <div className="flex flex-col rounded-3xl bg-card shadow-[4px_4px_12px_rgba(0,0,0,0.1),-4px_-4px_12px_rgba(255,255,255,0.05)]">
+        <div className="flex flex-wrap justify-center gap-2 p-4">{allowedSections.map((sectionKey) => {
+            const def = SECTION_DEFINITIONS[sectionKey]
+            if (!def) return null
+            const isActive = sectionKey === active
+            const IconComponent = getSectionIcon(sectionKey)
+            return (
+              <button
+                key={sectionKey}
+                onClick={() => dispatch(setActiveSection(sectionKey))}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition-all flex items-center gap-2 ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-[inset_2px_2px_5px_rgba(0,0,0,0.15),inset_-2px_-2px_5px_rgba(255,255,255,0.05)]'
+                    : 'bg-muted/70 text-muted-foreground shadow-[2px_2px_5px_rgba(0,0,0,0.1),-2px_-2px_5px_rgba(255,255,255,0.05)] hover:shadow-[inset_1px_1px_3px_rgba(0,0,0,0.1),inset_-1px_-1px_3px_rgba(255,255,255,0.05)] hover:text-foreground'
+                }`}
+                type="button"
+              >
+                <IconComponent className="h-4 w-4" />
+                {def.label}
+              </button>
+            )
+          })}
+        </div>
 
-      <div className="flex flex-col gap-4 p-4">
-        <Toolbar
-          search={search}
+        <div className="flex flex-col gap-4 p-4">
+          <Toolbar
+            search={search}
           onSearch={setSearch}
           totalRows={rows.length}
           filteredRows={filteredRows.length}
@@ -1053,24 +1147,34 @@ export default function DataTable() {
           uploadLabel={uploadConfig?.buttonLabel || 'Upload Excel'}
           showDeleteAllButton={showDeleteAllButton}
           onDeleteAll={() => openProgrammeDialog('deleteAll')}
+          showProgrammeFilter={active === SECTION_KEYS.students}
+          availableProgrammes={availableProgrammes}
+          programmeFilter={programmeFilter}
+          onProgrammeFilterChange={setProgrammeFilter}
+          filterDropdownOpen={filterDropdownOpen}
+          onFilterDropdownToggle={setFilterDropdownOpen}
         />
 
         {isSchoolAdmin && active === SECTION_KEYS.liahubCompanies && liahubProgrammeChips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 px-1">
-            <span className="text-xs text-muted-foreground">Filter by programme:</span>
-            {liahubProgrammeChips.map((chip) => {
-              const selected = liahubProgrammeFilter === chip.value
-              return (
-                <button
-                  key={chip.value}
-                  type="button"
-                  onClick={() => setLiahubProgrammeFilter((prev) => (prev === chip.value ? '' : chip.value))}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                    selected
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-muted text-foreground border-border hover:border-primary/60'
-                  }`}
-                >
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0a0a0a] rounded-xl border border-white/10">
+            <span className="text-sm font-semibold text-white/80 flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Filter by programme:
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {liahubProgrammeChips.map((chip) => {
+                const selected = liahubProgrammeFilter === chip.value
+                return (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => setLiahubProgrammeFilter((prev) => (prev === chip.value ? '' : chip.value))}
+                    className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
+                      selected
+                        ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
+                        : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                    }`}
+                  >
                   {chip.label}
                 </button>
               )
@@ -1079,11 +1183,13 @@ export default function DataTable() {
               <button
                 type="button"
                 onClick={() => setLiahubProgrammeFilter('')}
-                className="rounded-full border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-primary/60"
+                className="rounded-full border px-4 py-1.5 text-xs font-medium text-white/60 border-white/20 hover:text-white hover:border-red-400/50 hover:bg-red-500/10 transition-all flex items-center gap-1.5"
               >
+                <X className="h-3 h-3" />
                 Clear
               </button>
             )}
+            </div>
           </div>
         )}
 
@@ -1106,27 +1212,37 @@ export default function DataTable() {
               {search ? 'No records match your search.' : 'No data available for this section yet.'}
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl shadow-[2px_2px_8px_rgba(0,0,0,0.1),-2px_-2px_8px_rgba(255,255,255,0.05)] bg-background/40 p-1">
-              <table className="w-full min-w-[720px] table-auto text-sm text-foreground">
-                <thead className="text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr className="h-11">
+            <div className="overflow-x-auto rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] bg-[#0a0a0a] border border-[#0a0a0a]">
+              <table className="w-full min-w-[720px] table-auto text-sm">
+                <thead className="text-xs uppercase tracking-wider bg-[#0a0a0a] border-b border-white/10">
+                  <tr className="h-14">
                     {columns.map((column) => (
-                      <th key={column.key} className="px-4 text-left font-semibold">
-                        {column.label}
+                      <th key={column.key} className="px-5 text-left font-bold text-white">
+                        <div className="flex items-center gap-2">
+                          {column.label}
+                        </div>
                       </th>
                     ))}
-                    {(allowEdit || isEducationManagerSection || active === SECTION_KEYS.liahubCompanies) && <th className="px-4 text-right font-semibold">Actions</th>}
+                    {(allowEdit || isEducationManagerSection || active === SECTION_KEYS.liahubCompanies) && (
+                      <th className="px-5 text-left font-bold text-white">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-3.5 w-3.5" />
+                          Actions
+                        </div>
+                      </th>
+                    )}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-white/10">
                   {visibleRows.map((row) => {
                     const isSelfEducationManager = isEducationManagerSection && loggedInUserId && String(row.id) === loggedInUserId
                     const rowAllowsEdit = isEducationManagerSection ? (isSchoolAdmin || isSelfEducationManager) : allowEdit
                     const rowAllowsDelete = isEducationManagerSection ? isSchoolAdmin : rowAllowsEdit
+                    const isMoving = movingRowId === (row.id || row._id)
                     return (
                     <tr
                       key={row.id}
-                      className="h-[52px] rounded-xl transition-all hover:bg-primary/5 hover:shadow-[inset_1px_1px_3px_rgba(0,0,0,0.05)] cursor-pointer"
+                      className="h-16 transition-all hover:bg-white/5 cursor-pointer group bg-[#0a0a0a]"
                       onClick={(e) => {
                         if (e.target.closest('[data-no-detail-on-click]')) return
                         setDetailRow(row)
@@ -1135,14 +1251,14 @@ export default function DataTable() {
                       >
                       {columns.map((column) => {
                         const title = buildTitle(column, row)
-                        const cellClasses = ['px-3 py-3 align-top']
-                        if (column.grow) cellClasses.push('max-w-[260px] whitespace-normal break-words line-clamp-2')
-                        else cellClasses.push('max-w-[220px] whitespace-nowrap overflow-hidden text-ellipsis')
+                        const cellClasses = ['px-5 py-4 align-middle']
+                        if (column.grow) cellClasses.push('max-w-[280px] whitespace-normal break-words')
+                        else cellClasses.push('max-w-[240px] whitespace-nowrap overflow-hidden text-ellipsis')
 
                         return (
                           <td key={column.key} className={cellClasses.join(' ')} title={title}>
-                            <div className="flex items-start gap-2">
-                              <div className="min-w-0 flex-1 text-sm leading-snug text-foreground line-clamp-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="min-w-0 flex-1 text-sm leading-relaxed text-white font-medium">
                                 {renderCellContent(column, row)}
                               </div>
                             </div>
@@ -1150,7 +1266,7 @@ export default function DataTable() {
                         )
                       })}
                       {(rowAllowsEdit || active === SECTION_KEYS.liahubCompanies || isEducationManagerSection) && (
-                        <td className="px-4 py-4 text-right" data-no-detail-on-click>
+                        <td className="px-5 py-4 text-right" data-no-detail-on-click>
                           <RowActions
                             onView={() => {
                               setDetailRow(row)
@@ -1163,11 +1279,14 @@ export default function DataTable() {
                             onDelete={() => {
                               handleDelete(row)
                             }}
+                            onMoveToCompanies={active === SECTION_KEYS.liahubCompanies ? () => handleMoveToCompanies(row) : undefined}
+                            showMoveToCompanies={active === SECTION_KEYS.liahubCompanies}
                             disabled={mutationPending}
                             isAdminOnly={active === SECTION_KEYS.liahubCompanies}
                             isAdmin={isSchoolAdmin}
                             allowEdit={rowAllowsEdit}
                             allowDelete={rowAllowsDelete}
+                            moving={isMoving}
                           />
                         </td>
                       )}
@@ -1186,7 +1305,9 @@ export default function DataTable() {
           )}
         </div>
       </div>
+      </div>
 
+      {/* All modals/dialogs rendered outside the main container for full-page overlay */}
       <RecordEditorDialog
         open={editorOpen}
         mode={editorMode}
@@ -1234,7 +1355,7 @@ export default function DataTable() {
       />
 
       {deleteSuccess && active === SECTION_KEYS.students && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
           <StatusCard
             title="Student deleted"
             description={`${deleteSuccess.name} has been removed from the dashboard.`}
@@ -1263,11 +1384,11 @@ export default function DataTable() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={programmeDialogOpen} onOpenChange={setProgrammeDialogOpen}>
-        <DialogContent className="w-full max-w-md mx-auto text-left bg-transparent border-0 shadow-none">
-          <div className="rounded-2xl bg-background/60 backdrop-blur-sm p-6 shadow-[2px_2px_8px_rgba(0,0,0,0.1),-2px_-2px_8px_rgba(255,255,255,0.05)]">
+      <Dialog open={programmeDialogOpen} onOpenChange={setProgrammeDialogOpen} allowOverflow>
+        <DialogContent className="w-full max-w-md mx-auto text-left">
+          <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
             <DialogHeader>
-              <DialogTitle className="text-base font-semibold">Select programme</DialogTitle>
+              <DialogTitle className="text-base font-semibold text-white">Select programme</DialogTitle>
               <DialogClose onClick={() => setProgrammeDialogOpen(false)} />
             </DialogHeader>
             <DialogBody>
@@ -1298,21 +1419,73 @@ export default function DataTable() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }
 
-function Toolbar({ search, onSearch, totalRows, filteredRows, currentSectionLabel, allowAdd, onAdd, showUploadButton, onUpload, uploadLabel, showDeleteAllButton, onDeleteAll }) {
-  const hasFilter = search.trim().length > 0
+function Toolbar({ 
+  search, 
+  onSearch, 
+  totalRows, 
+  filteredRows, 
+  currentSectionLabel, 
+  allowAdd, 
+  onAdd, 
+  showUploadButton, 
+  onUpload, 
+  uploadLabel, 
+  showDeleteAllButton, 
+  onDeleteAll,
+  showProgrammeFilter = false,
+  availableProgrammes = [],
+  programmeFilter = '',
+  onProgrammeFilterChange = () => {},
+  filterDropdownOpen = false,
+  onFilterDropdownToggle = () => {}
+}) {
+  const hasFilter = search.trim().length > 0 || programmeFilter
+  const [programmeSearch, setProgrammeSearch] = React.useState('')
+  const dropdownRef = React.useRef(null)
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        onFilterDropdownToggle(false)
+      }
+    }
+    if (filterDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [filterDropdownOpen, onFilterDropdownToggle])
+
+  const filteredProgrammes = React.useMemo(() => {
+    if (!programmeSearch) return availableProgrammes
+    const term = programmeSearch.toLowerCase()
+    return availableProgrammes.filter(p => p.toLowerCase().includes(term))
+  }, [availableProgrammes, programmeSearch])
+
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">{currentSectionLabel}</span>
-        <span className="text-muted-foreground/60">•</span>
-        <span>
-          {filteredRows} / {totalRows || 0} rows
-          {hasFilter && ' (filtered)'}
-        </span>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <GraduationCap className="h-5 w-5 text-primary" />
+          <span className="font-bold text-foreground text-base">{currentSectionLabel}</span>
+        </div>
+        <span className="text-muted-foreground/40">•</span>
+        <div className="flex items-center gap-2 text-sm">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="font-semibold text-foreground">{filteredRows}</span>
+          <span className="text-muted-foreground/80">/</span>
+          <span className="text-muted-foreground">{totalRows || 0}</span>
+          {hasFilter && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <Filter className="h-3 w-3" />
+              Filtered
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
         <div className="relative sm:w-64">
@@ -1321,22 +1494,98 @@ function Toolbar({ search, onSearch, totalRows, filteredRows, currentSectionLabe
             value={search}
             onChange={(event) => onSearch(event.target.value)}
             placeholder="Search in table..."
-            className="rounded-full pl-10"
+            className="rounded-full pl-10 bg-background/50 border-slate-300 dark:border-slate-700"
           />
         </div>
+        {showProgrammeFilter && availableProgrammes.length > 0 && (
+          <div className="relative" ref={dropdownRef}>
+            <Button
+              type="button"
+              variant={programmeFilter ? "default" : "outline"}
+              onClick={() => onFilterDropdownToggle(!filterDropdownOpen)}
+              className="gap-2 min-w-[180px] justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span className="truncate">
+                  {programmeFilter || 'Filter by Programme'}
+                </span>
+              </div>
+              {programmeFilter ? (
+                <X 
+                  className="h-3.5 w-3.5 ml-1" 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onProgrammeFilterChange('')
+                    setProgrammeSearch('')
+                  }}
+                />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+            {filterDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-72 rounded-xl border border-white/10 bg-[#0a0a0a] shadow-xl z-50 overflow-hidden">
+                <div className="p-3 border-b border-white/10 bg-[#0a0a0a]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/60" />
+                    <Input
+                      value={programmeSearch}
+                      onChange={(e) => setProgrammeSearch(e.target.value)}
+                      placeholder="Search programmes..."
+                      className="h-9 rounded-lg pl-9 text-sm bg-[#0a0a0a] border-white/10 text-white placeholder:text-white/40"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {filteredProgrammes.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-white/40">
+                      No programmes found
+                    </div>
+                  ) : (
+                    <div className="py-2">
+                      {filteredProgrammes.map((prog) => (
+                        <button
+                          key={prog}
+                          type="button"
+                          onClick={() => {
+                            onProgrammeFilterChange(prog)
+                            onFilterDropdownToggle(false)
+                            setProgrammeSearch('')
+                          }}
+                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5 flex items-center gap-2 ${
+                            programmeFilter === prog
+                              ? 'bg-blue-500/20 text-blue-400 font-semibold'
+                              : 'text-white'
+                          }`}
+                        >
+                          <BookOpen className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{prog}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {showUploadButton && (
-          <Button type="button" onClick={onUpload} variant="outline" className="sm:w-auto gap-2">
+          <Button type="button" onClick={onUpload} variant="outline" className="sm:w-auto gap-2 border-slate-300 dark:border-slate-700">
             <Upload className="h-4 w-4" />
             {uploadLabel || 'Upload Excel'}
           </Button>
         )}
         {showDeleteAllButton && (
           <Button type="button" onClick={onDeleteAll} variant="destructive" className="sm:w-auto gap-2">
+            <Trash2 className="h-4 w-4" />
             Delete all
           </Button>
         )}
         {allowAdd && (
-          <Button type="button" onClick={onAdd} className="sm:w-auto">
+          <Button type="button" onClick={onAdd} className="sm:w-auto gap-2">
+            <GraduationCap className="h-4 w-4" />
             Add new
           </Button>
         )}
@@ -1345,7 +1594,7 @@ function Toolbar({ search, onSearch, totalRows, filteredRows, currentSectionLabe
   )
 }
 
-function RowActions({ onView, onEdit, onDelete, disabled, isAdminOnly = false, isAdmin = false, allowEdit = true, allowDelete = true }) {
+function RowActions({ onView, onEdit, onDelete, onMoveToCompanies, disabled, isAdminOnly = false, isAdmin = false, allowEdit = true, allowDelete = true, showMoveToCompanies = false, moving = false }) {
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const shouldDisableActions = isAdminOnly && !isAdmin
 
@@ -1355,9 +1604,9 @@ function RowActions({ onView, onEdit, onDelete, disabled, isAdminOnly = false, i
   }, [onDelete])
 
   const handleDeleteClick = React.useCallback(() => {
-    if (disabled || shouldDisableActions || !allowDelete) return
+    if (disabled || shouldDisableActions || !allowDelete || moving) return
     setConfirmOpen(true)
-  }, [disabled, shouldDisableActions, allowDelete])
+  }, [disabled, shouldDisableActions, allowDelete, moving])
 
   return (
     <>
@@ -1381,7 +1630,7 @@ function RowActions({ onView, onEdit, onDelete, disabled, isAdminOnly = false, i
           type="button"
           variant="ghost"
           size="sm"
-          disabled={disabled || shouldDisableActions || !allowEdit}
+          disabled={disabled || shouldDisableActions || !allowEdit || moving}
           onClick={(e) => {
             e.stopPropagation()
             onEdit(e)
@@ -1391,12 +1640,28 @@ function RowActions({ onView, onEdit, onDelete, disabled, isAdminOnly = false, i
         >
           <Edit className="h-4 w-4" />
         </Button>
+        {showMoveToCompanies && onMoveToCompanies && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={disabled || shouldDisableActions || moving}
+            onClick={(e) => {
+              e.stopPropagation()
+              onMoveToCompanies()
+            }}
+            title="Move to Companies Table"
+            className="h-8 w-8 p-0 rounded-full shadow-[2px_2px_5px_rgba(0,0,0,0.1),-2px_-2px_5px_rgba(255,255,255,0.05)] hover:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.1),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] transition-all text-blue-500 hover:text-blue-600"
+          >
+            {moving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+          </Button>
+        )}
         <Button
           type="button"
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0 rounded-full shadow-[2px_2px_5px_rgba(0,0,0,0.1),-2px_-2px_5px_rgba(255,255,255,0.05)] hover:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.1),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] transition-all text-destructive hover:text-destructive"
-          disabled={disabled || shouldDisableActions || !allowDelete}
+          disabled={disabled || shouldDisableActions || !allowDelete || moving}
           onClick={(e) => {
             e.stopPropagation()
             handleDeleteClick()
@@ -1451,6 +1716,30 @@ function RecordEditorDialog({
   educationManagersList = [],
 }) {
   const title = mode === 'edit' ? `Edit ${definition?.singularLabel || 'record'}` : `Add ${definition?.singularLabel || 'record'}`
+  const [companySearch, setCompanySearch] = useState('')
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false)
+  const companyDropdownRef = useRef(null)
+
+  // Filter companies based on search
+  const filteredCompanies = useMemo(() => {
+    if (!companySearch.trim()) return companiesList
+    const search = companySearch.toLowerCase()
+    return companiesList.filter(c => 
+      c.name?.toLowerCase().includes(search) || 
+      c.location?.toLowerCase().includes(search)
+    )
+  }, [companiesList, companySearch])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target)) {
+        setIsCompanyDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1475,59 +1764,108 @@ function RecordEditorDialog({
                       </Label>
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <Select
-                              value={values.companySelect || ''}
-                              onChange={(event) => {
-                                const val = event.target.value
-                                onChange('companySelect', val)
-                                if (val) {
-                                  applyCompanyAutofill(val)
-                                }
-                              }}
-                              className="h-11 shadow-sm"
-                            >
-                              <SelectOption value="" className="text-muted-foreground italic">
-                                {companiesList.length === 0 ? '⚠️ No companies available - upload via Excel first' : '🏢 Select a company...'}
-                              </SelectOption>
-                              {companiesList.map((c) => (
-                                <SelectOption key={c.id || c._id} value={c.id || c._id} className="py-2">
-                                  🏢 {c.name}{c.location ? ` • ${c.location}` : ''}
-                                </SelectOption>
-                              ))}
-                            </Select>
+                          <div className="relative flex-1" ref={companyDropdownRef}>
+                            {/* Search Input */}
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                              <input
+                                type="text"
+                                placeholder={selectedCompany ? selectedCompany.name : (companiesList.length === 0 ? 'No companies available' : 'Search companies...')}
+                                value={companySearch}
+                                onChange={(e) => setCompanySearch(e.target.value)}
+                                onFocus={() => setIsCompanyDropdownOpen(true)}
+                                className="h-11 w-full pl-10 pr-4 rounded-lg  bg-[#0a0a0a] text-white placeholder:text-white/40 focus:outline-none transition-all shadow-sm"
+                              />
+                            </div>
+                            
+                            {/* Dropdown List */}
+                            {isCompanyDropdownOpen && (
+                              <div className="absolute z-50 w-full mt-2 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#0a0a0a] shadow-xl">
+                                {filteredCompanies.length === 0 ? (
+                                  <div className="px-4 py-6 text-center text-white/40 text-sm">
+                                    {companiesList.length === 0 ? (
+                                      <div className="flex flex-col items-center gap-2">
+                                        <Building2 className="h-8 w-8 text-amber-500/50" />
+                                        <p>No companies available</p>
+                                        <p className="text-xs">Upload via Excel first</p>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center gap-2">
+                                        <Search className="h-8 w-8 text-white/20" />
+                                        <p>No companies found</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  filteredCompanies.map((c, idx) => (
+                                    <div
+                                      key={c.id || c._id}
+                                      onClick={() => {
+                                        const val = c.id || c._id
+                                        onChange('companySelect', val)
+                                        if (val) {
+                                          applyCompanyAutofill(val)
+                                        }
+                                        setCompanySearch('')
+                                        setIsCompanyDropdownOpen(false)
+                                      }}
+                                      className={`px-4 py-3 cursor-pointer transition-all hover:bg-white/5 border-b border-white/5 last:border-b-0 ${
+                                        (c.id || c._id) === values.companySelect ? 'bg-primary/10 border-l-2 border-l-primary' : ''
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className="rounded-md bg-primary/10 p-1.5">
+                                          <Building2 className="h-3.5 w-3.5 text-primary" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium text-white truncate">{c.name}</p>
+                                          {c.location && (
+                                            <p className="text-xs text-white/50 truncate">{c.location}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
                           </div>
                           <Button 
                             type="button" 
                             variant="outline"
                             size="icon"
-                            className="h-11 w-11 shrink-0 hover:bg-primary/10 hover:border-primary transition-all"
+                            className="h-11 w-11 shrink-0 bg-[#0a0a0a] border-white/10 hover:bg-white/5 hover:border-primary transition-all"
                             onClick={refreshCompaniesList}
                             title="Refresh companies list"
                           >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           </Button>
                         </div>
                         {selectedCompany && (
-                          <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+                          <div className="rounded-xl bg-gradient-to-br from-emerald-500/10 via-primary/5 to-blue-500/10 border border-emerald-400/20 p-4 shadow-lg">
                             <div className="flex items-start gap-3">
-                              <div className="rounded-lg bg-primary/10 p-2">
-                                <Building2 className="h-5 w-5 text-primary" />
+                              <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 to-primary/20 p-2.5 shadow-inner">
+                                <Building2 className="h-5 w-5 text-emerald-400" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm mb-1">{selectedCompany.name}</h4>
+                                <h4 className="font-semibold text-sm mb-1.5 text-white">{selectedCompany.name}</h4>
                                 {selectedCompany.location && (
-                                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <p className="text-xs text-white/60 flex items-center gap-1.5 mb-2">
+                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
                                     {selectedCompany.location}
                                   </p>
                                 )}
-                                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">✓ Details will be auto-filled below</p>
+                                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-400/30 rounded-md w-fit">
+                                  <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <p className="text-xs text-emerald-400 font-medium">Details will auto-fill</p>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1689,6 +2027,22 @@ function RecordEditorDialog({
               })}
             </div>
 
+            {/* Company quality tag for company-like records */}
+            {['company','lead_company','liahub_company'].includes(definition?.recordType) && (
+              <div className="mt-2">
+                <div className="flex flex-col gap-2">
+                  <Label>Company quality</Label>
+                  <Select value={values.quality || ''} onChange={(e) => onChange('quality', e.target.value)}>
+                    <SelectOption value="">None</SelectOption>
+                    <SelectOption value="good">Good (Green)</SelectOption>
+                    <SelectOption value="future">Future / Potential (Orange)</SelectOption>
+                    <SelectOption value="bad">Problematic / Bad (Red)</SelectOption>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Show a small colored dot next to the company name: green = Good, orange = Future, red = Problematic.</p>
+                </div>
+              </div>
+            )}
+
             {error ? <div className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -1825,10 +2179,18 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl bg-transparent border-0 shadow-none">
-        <div className="rounded-2xl bg-background/60 backdrop-blur-sm p-6 shadow-[2px_2px_8px_rgba(0,0,0,0.1),-2px_-2px_8px_rgba(255,255,255,0.05)]">
+      <DialogContent className="max-w-3xl">
+        <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">{definition?.singularLabel || 'Record'} Details</DialogTitle>
+            <DialogTitle className="text-base font-semibold text-white flex items-center gap-2">
+              {['company', 'lead_company', 'liahub_company'].includes(definition?.recordType) && row.quality ? (
+                <span
+                  className={`w-3 h-3 rounded-full flex-shrink-0 animate-pulse ${row.quality === 'good' ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]' : row.quality === 'future' ? 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]'}`}
+                  title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+                />
+              ) : null}
+              <span>{definition?.singularLabel || 'Record'} Details</span>
+            </DialogTitle>
             <DialogClose onClick={() => onOpenChange(false)} />
           </DialogHeader>
           <DialogBody>
@@ -1837,14 +2199,34 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
                 const value = row[column.key]
                 const display = value === null || value === undefined || value === '' ? '—' : formatColumnValue(column, value)
                 return (
-                  <div key={column.key} className="rounded-2xl bg-background/40 p-4 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05),inset_-1px_-1px_2px_rgba(0,0,0,0.1)]">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{column.label}</div>
+                  <div key={column.key} className="rounded-xl bg-white/5 border border-white/10 p-4 shadow-sm">
+                    <div className="text-xs font-medium text-white/60 uppercase tracking-wide">{column.label}</div>
                     <div className={`mt-2 text-sm break-words whitespace-pre-wrap leading-snug ${
-                      isReadOnly ? 'text-muted-foreground' : 'text-foreground'
+                      isReadOnly ? 'text-white/70' : 'text-white'
                     }`}>{display}</div>
                   </div>
                 )
               })}
+              {/* Show quality indicator as a field for company records */}
+              {['company', 'lead_company', 'liahub_company'].includes(definition?.recordType) && (
+                <div className="rounded-xl bg-white/5 border border-white/10 p-4 shadow-sm">
+                  <div className="text-xs font-medium text-white/60 uppercase tracking-wide">Company Quality</div>
+                  <div className="mt-2 flex items-center gap-2">
+                    {row.quality ? (
+                      <>
+                        <span
+                          className={`w-3 h-3 rounded-full flex-shrink-0 animate-pulse ${row.quality === 'good' ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]' : row.quality === 'future' ? 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]'}`}
+                        />
+                        <span className="text-sm text-white">
+                          {row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / Potential' : 'Problematic / Bad'}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-white/50">Not set</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             {isReadOnly && (
               <p className="mt-4 text-xs text-muted-foreground text-center italic">Read-only view. Admins can edit this record.</p>

@@ -75,11 +75,11 @@ export const AvatarFallback = ({ className = '' }) => {
     return null
   }
 
-  // Display professional user icon with subtle background gradient
+  // Display professional user icon with bluish background
   return (
-    <div className={cn('absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800', className)}>
+    <div className={cn('absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800', className)}>
       <UserCircle 
-        className="text-slate-500 dark:text-slate-400" 
+        className="text-blue-100 dark:text-blue-200" 
         strokeWidth={1.2}
         style={{ width: '70%', height: '70%' }} 
       />

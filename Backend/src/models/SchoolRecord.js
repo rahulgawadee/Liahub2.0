@@ -25,6 +25,7 @@ const schoolRecordSchema = new Schema(
     },
     notes: { type: String },
     status: { type: String, default: "active" },
+    quality: { type: String, enum: ['good', 'future', 'bad', ''], default: '' },
     studentUser: { type: Schema.Types.ObjectId, ref: "User" },
     passwordGenerated: { type: Boolean, default: false },
     assignedCompanyId: { type: Schema.Types.ObjectId, ref: "SchoolRecord" },

@@ -48,7 +48,17 @@ function Row({ row, dispatch }){
 		<tr className="border-b border-subtle last:border-0 hover:bg-accent/50 transition-colors">
 			{isEditing ? (
 				<>
-					<Td><Input value={local.business} onChange={e=>onChange('business',e.target.value)} /></Td>
+					<Td>
+						<div className="flex items-center gap-2">
+							<Input value={local.business} onChange={e=>onChange('business',e.target.value)} />
+							<select value={local.quality||''} onChange={e=>onChange('quality',e.target.value)} className="px-2 py-1 border rounded text-sm bg-background">
+								<option value="">Quality</option>
+								<option value="good">Good (Green)</option>
+								<option value="future">Future (Orange)</option>
+								<option value="bad">Bad (Red)</option>
+							</select>
+						</div>
+					</Td>
 					<Td><Input value={local.contactPerson} onChange={e=>onChange('contactPerson',e.target.value)} /></Td>
 					<Td><Input value={local.contactNumber} onChange={e=>onChange('contactNumber',e.target.value)} /></Td>
 					<Td><Input value={local.email} onChange={e=>onChange('email',e.target.value)} /></Td>
@@ -63,7 +73,18 @@ function Row({ row, dispatch }){
 				</>
 			) : (
 				<>
-					<Td>{row.business}</Td>
+					<Td>
+						<div className="flex items-center gap-2 min-w-0">
+							<span className="truncate">{row.business}</span>
+							{row.quality ? (
+								<span
+									className={`w-3 h-3 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
+									title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+									style={{ boxShadow: row.quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : row.quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
+								/>
+							) : null}
+						</div>
+					</Td>
 					<Td>{row.contactPerson}</Td>
 					<Td>{row.contactNumber}</Td>
 					<Td>{row.email}</Td>
@@ -99,7 +120,31 @@ function CompanyCard({ row, dispatch }){
 					{row.business?.[0] || '?'}
 				</div>
 				<div className="flex-1 min-w-0">
-					{isEditing ? <Input value={local.business} onChange={e=>onChange('business',e.target.value)} /> : <h3 className="font-semibold text-base leading-tight">{row.business}</h3>}
+					{isEditing ? (
+						<div className="flex items-center gap-2">
+							<Input value={local.business} onChange={e=>onChange('business',e.target.value)} />
+							<select value={local.quality||''} onChange={e=>onChange('quality',e.target.value)} className="px-2 py-1 border rounded text-sm bg-background">
+								<option value="">Quality</option>
+								<option value="good">Good (Green)</option>
+								<option value="future">Future (Orange)</option>
+								<option value="bad">Bad (Red)</option>
+							</select>
+						</div>
+					) : (
+						<h3 className="font-semibold text-base leading-tight">
+							<div className="flex items-center gap-2">
+								{row.quality ? (
+									<span
+										className={`w-2 h-2 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
+										title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+									/>
+								) : (
+									<span className="w-2 h-2 rounded-full flex-shrink-0 bg-transparent" />
+								)}
+								<span className="truncate">{row.business}</span>
+							</div>
+						</h3>
+					)}
 					<p className="text-sm text-muted-foreground break-all">{row.email}</p>
 				</div>
 				<div className="flex gap-1 ml-auto">

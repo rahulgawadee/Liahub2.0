@@ -134,15 +134,15 @@ export const SECTION_DEFINITIONS = {
 				isCompanyDropdown: true,
 				dynamicOptions: true,
 			},
-			{ key: 'placement', label: 'Company (Företag)', type: 'text', showAvatar: true, linkToProfile: true },
-			{ key: 'location', label: 'City/Country (Ort/land)', type: 'text' },
-			{ key: 'contactPerson', label: 'Contact Person (Kontaktperson)', type: 'text' },
-			{ key: 'role', label: 'Role (Roll)', type: 'text' },
-			{ key: 'companyEmail', label: 'Email (Mejl)', type: 'email' },
-			{ key: 'phone', label: 'Phone (Telefon)', type: 'text' },
-			{ key: 'orgNumber', label: 'Company Org/Reg No (Ftg org/reg nr)', type: 'text' },
-			{ key: 'notes', label: 'Notera', type: 'text' },
-			{ key: 'assignmentProcess', label: 'Tilldela/urvalsprocess', type: 'text' },
+			{ key: 'placement', label: 'Company', type: 'text', showAvatar: true, linkToProfile: true },
+			{ key: 'location', label: 'City/Country', type: 'text' },
+			{ key: 'contactPerson', label: 'Contact Person', type: 'text' },
+			{ key: 'role', label: 'Role', type: 'text' },
+			{ key: 'companyEmail', label: 'Email', type: 'email' },
+			{ key: 'phone', label: 'Phone', type: 'text' },
+			{ key: 'orgNumber', label: 'Company Org/Reg No', type: 'text' },
+			{ key: 'notes', label: 'Notes', type: 'text' },
+			{ key: 'assignmentProcess', label: 'Assignment/Selection Process', type: 'text' },
 			{ 
 				key: 'programme', 
 				label: 'NBI/Commercial Administration program', 
@@ -151,18 +151,18 @@ export const SECTION_DEFINITIONS = {
 			},
 			{
 				key: 'educationLeader',
-				label: 'UL',
+				label: 'Education Leader',
 				type: 'select',
-				// Program managers (UL)
+				// Program managers
 				options: [
 					'Zuzana Polievka',
 					'Maria Holm',
 					'Magdalena Fagerlind',
 				],
 			},
-			{ key: 'name', label: 'Studerande Namn', type: 'text', required: true, showAvatar: true, linkToProfile: true },
-			{ key: 'email', label: 'Studerande mejladress (skola)', type: 'email' },
-			{ key: 'infoFromLeader', label: 'Info från UL', type: 'text' },
+			{ key: 'name', label: 'Student Name', type: 'text', required: true, showAvatar: true, linkToProfile: true },
+			{ key: 'email', label: 'Student Email (School)', type: 'email' },
+			{ key: 'infoFromLeader', label: 'Info from Leader', type: 'text' },
 			{
 				key: 'status',
 				label: 'Status',
@@ -244,36 +244,17 @@ export const SECTION_DEFINITIONS = {
 		cardSections: [
 			{ key: 'company', label: 'Company', keys: ['business', 'location'] },
 			{ key: 'contact', label: 'Contact', keys: ['contactPerson', 'contactEmail', 'phone'] },
-			{ key: 'student', label: 'Student', keys: ['studentName', 'studentEmail'] },
+			{ key: 'students', label: 'Students', keys: ['students'] },
 		],
 		columns: [
-			{
-				key: 'date',
-				label: 'Datum',
-				type: 'text',
-				isDate: true,
-				format: DATE_FORMAT_YEARMONTHDAY_SHORT,
-				placeholder: 'YY/MM/DD',
-			},
-			{ key: 'business', label: 'Företag', type: 'text', required: true },
-			{ key: 'location', label: 'Ort/Land', type: 'text' },
-			{ key: 'contactPerson', label: 'Kontaktperson', type: 'text' },
-			{ key: 'role', label: 'Roll', type: 'text' },
-			{ key: 'contactEmail', label: 'Mejl', type: 'email' },
-			{ key: 'phone', label: 'Telefon', type: 'text' },
-			{ key: 'orgNumber', label: 'Ftg org/reg nr', type: 'text' },
-			{ key: 'note', label: 'Notering', type: 'text', grow: true },
-			{ key: 'nextStepPriority', label: 'Nästa steg / PRIO', type: 'text' },
-			{ key: 'assignmentProcess', label: 'Tilldela/urvalsprocess', type: 'text' },
-			{ key: 'program', label: 'NBI/Commercial Administration program', type: 'select', options: PROGRAMME_OPTIONS, required: true },
-			{ key: 'educationLeader', label: 'UL', type: 'text' },
-			{ key: 'educationLeaderEmail', label: 'Mejl (UL)', type: 'email' },
-			{ key: 'studentName', label: 'Studerande Namn', type: 'text' },
-			{ key: 'studentEmail', label: 'Studerande mejladress', type: 'email' },
-			{ key: 'infoFromUL', label: 'Info från UL', type: 'text', grow: true },
-			{ key: 'nextStep', label: 'Nästa steg', type: 'text' },
-			{ key: 'jaFlag', label: 'JA', type: 'select', options: ['','JA','NEJ'] },
-			{ key: 'nejFlag', label: 'NEJ', type: 'select', options: ['','JA','NEJ'] },
+			{ key: 'business', label: 'Company', type: 'text', required: true, showAvatar: true, linkToProfile: true },
+			{ key: 'location', label: 'City/Country', type: 'text' },
+			{ key: 'contactPerson', label: 'Contact Person', type: 'text', showAvatar: true, linkToProfile: true },
+			{ key: 'role', label: 'Role', type: 'text' },
+			{ key: 'contactEmail', label: 'Email', type: 'email' },
+			{ key: 'phone', label: 'Phone', type: 'text' },
+			{ key: 'orgNumber', label: 'Company Org/Reg No', type: 'text' },
+			{ key: 'students', label: 'Students', type: 'number', defaultValue: 0 },
 			{
 				key: 'status',
 				label: 'Status',
@@ -392,13 +373,26 @@ export const SECTION_DEFINITIONS = {
 			{ key: 'students', label: 'Students', keys: ['students'] },
 		],
 		columns: [
-			{ key: 'business', label: 'Company (Företag)', type: 'text', required: true, showAvatar: true, linkToProfile: true },
-			{ key: 'location', label: 'City/Country (Ort/land)', type: 'text' },
-			{ key: 'contactPerson', label: 'Contact Person (Kontaktperson)', type: 'text', showAvatar: true, linkToProfile: true },
-			{ key: 'role', label: 'Role (Roll)', type: 'text' },
-			{ key: 'companyEmail', label: 'Email (Mejl)', type: 'email' },
-			{ key: 'phone', label: 'Phone (Telefon)', type: 'text' },
-			{ key: 'orgNumber', label: 'Company Org/Reg No (Ftg org/reg nr)', type: 'text' },
+			{
+				key: 'date',
+				label: 'Date',
+				type: 'text',
+				isDate: true,
+				format: DATE_FORMAT_YEARMONTHDAY_SHORT,
+				placeholder: 'YY/MM/DD (e.g., 25/09/04)',
+				helpText: 'Enter date as YY/MM/DD, for example 25/09/04',
+				pattern: DATE_FORMAT_PATTERN.source,
+				title: 'Use YY/MM/DD format, e.g. 25/09/04',
+				inputMode: 'numeric',
+				maxLength: 8,
+			},
+			{ key: 'business', label: 'Company', type: 'text', required: true, showAvatar: true, linkToProfile: true },
+			{ key: 'location', label: 'City/Country', type: 'text' },
+			{ key: 'contactPerson', label: 'Contact Person', type: 'text', showAvatar: true, linkToProfile: true },
+			{ key: 'role', label: 'Role', type: 'text' },
+			{ key: 'companyEmail', label: 'Email', type: 'email' },
+			{ key: 'phone', label: 'Phone', type: 'text' },
+			{ key: 'orgNumber', label: 'Company Org/Reg No', type: 'text' },
 			{ key: 'students', label: 'Students', type: 'number', defaultValue: 0 },
 			{
 				key: 'status',
@@ -585,6 +579,12 @@ export const buildInitialValuesForSection = (sectionKey, row = null) => {
 	})
 
 	values.status = normalizeStatus(row?.status || definition.defaultStatus)
+	
+	// Include quality field for company-related records
+	if (row && [SECTION_KEYS.companies, SECTION_KEYS.leadingCompanies, SECTION_KEYS.liahubCompanies].includes(sectionKey)) {
+		values.quality = row.quality || ''
+	}
+	
 	return values
 }
 
@@ -627,10 +627,16 @@ export const buildRecordPayloadForSection = (sectionKey, values = {}) => {
 		}
 	}
 
+	// Include quality field for company-related records
+	if ([SECTION_KEYS.companies, SECTION_KEYS.leadingCompanies, SECTION_KEYS.liahubCompanies].includes(sectionKey) && values.quality !== undefined) {
+		data.quality = values.quality || ''
+	}
+
 	return {
 		type: definition.recordType,
 		status: normalizeStatus(values.status || definition.defaultStatus),
 		data,
+		quality: values.quality || '', // Include quality at top level for company records
 	}
 }
 

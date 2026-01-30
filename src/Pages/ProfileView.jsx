@@ -244,8 +244,8 @@ export default function ProfileView(){
                       className="h-full w-full object-cover" 
                     />
                   ) : (
-                    <div className="flex items-center justify-center h-full text-sm opacity-60">
-                      No cover photo
+                    <div className="flex items-center justify-center h-full bg-black text-white text-sm font-medium">
+                      No Cover image yet
                     </div>
                   )}
                 </div>

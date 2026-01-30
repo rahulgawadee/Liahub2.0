@@ -89,8 +89,8 @@ export const SelectItem = ({ children, value, onSelect, className = '' }) => (
     type="button"
     onClick={() => onSelect?.(value)}
     className={cn(
-      // Make items readable on gray background
-      'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-gray-600 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      // Make items readable on gray background with left-aligned text
+      'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 px-3 text-sm text-left outline-none hover:bg-gray-600 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
   >

@@ -252,7 +252,6 @@ export default function Explore(){
                             onVisitProfile={handleVisitProfile}
                             onAccept={incomingEntry ? () => handleAccept(incomingEntry, entry) : undefined}
                             onDecline={incomingEntry ? () => handleDecline(incomingEntry) : undefined}
-                            onMessage={onMessage}
                           />
                         )
                       })}

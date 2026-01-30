@@ -58,6 +58,7 @@ export default function CompanyAbout() {
       companyPhone: companyProfile.companyPhone || user?.contact?.phone || '',
       companyRegNo: companyProfile.companyRegNo || '',
       aboutCompany: companyProfile.aboutCompany || '',
+      companyDomain: companyProfile.companyDomain || '',
       website: companyProfile.website || user?.contact?.website || '',
       industries: companyProfile.industries || [],
       headcount: companyProfile.headcount || '',
@@ -83,6 +84,7 @@ export default function CompanyAbout() {
           companyPhone: formData.companyPhone?.trim() || '',
           companyRegNo: formData.companyRegNo?.trim() || '',
           aboutCompany: formData.aboutCompany?.trim() || '',
+          companyDomain: formData.companyDomain?.trim() || '',
           website: formData.website?.trim() || '',
           industries: Array.isArray(formData.industries) ? formData.industries : [],
           headcount: formData.headcount ? parseInt(formData.headcount) : undefined,
@@ -218,6 +220,21 @@ export default function CompanyAbout() {
             <div className="flex-1">
               <div className="text-xs text-muted-foreground mb-1">Company Org/Reg No</div>
               <div className="font-mono text-sm">{companyProfile.companyRegNo || <span className="text-muted-foreground">Not provided</span>}</div>
+            </div>
+          </div>
+
+          {/* Company Domain */}
+          <div className="flex items-start gap-3">
+            <Briefcase className="h-5 w-5 mt-0.5 text-muted-foreground" />
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground mb-1">Company Domain/Industry</div>
+              {companyProfile.companyDomain ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-sm font-medium">
+                  {companyProfile.companyDomain}
+                </span>
+              ) : (
+                <div className="text-muted-foreground">Not provided</div>
+              )}
             </div>
           </div>
 
@@ -366,6 +383,29 @@ export default function CompanyAbout() {
               />
             </div>
 
+            {/* Company Domain */}
+            <div>
+              <Label>Company Domain/Industry</Label>
+              <select
+                value={formData.companyDomain || ''}
+                onChange={(e) => setFormData({ ...formData, companyDomain: e.target.value })}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Select domain...</option>
+                <option value="AI">AI</option>
+                <option value="Paralegal">Paralegal</option>
+                <option value="Civil">Civil</option>
+                <option value="Technology">Technology</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Finance">Finance</option>
+                <option value="Education">Education</option>
+                <option value="Manufacturing">Manufacturing</option>
+                <option value="Retail">Retail</option>
+                <option value="Other">Other</option>
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">Primary domain/industry your company works in and hires for (shown on Explore page)</p>
+            </div>
+
             {/* About Company */}
             <div>
               <Label>About Company</Label>
@@ -376,6 +416,7 @@ export default function CompanyAbout() {
                 rows={4}
                 placeholder="Tell us about your company, mission, and values..."
               />
+              <p className="text-xs text-muted-foreground mt-1">This description will be shown on the Explore page</p>
             </div>
 
             {/* Industries - Searchable Multi-select Dropdown */}

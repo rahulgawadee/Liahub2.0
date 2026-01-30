@@ -91,12 +91,30 @@ const renderCellContent = (column, row, onNavigate) => {
   if (column.showAvatar && column.linkToProfile) {
     const userId = row.id || row.userId || row._id
     const imageUrl = row.avatarUrl || row.profileImage || row.avatar
+    const quality = row.quality || ''
+    const isCompanyColumn = column.key === 'business' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)
+    
     const handleClick = (e) => {
       e.stopPropagation()
       if (userId && onNavigate) {
         onNavigate(`/profile/${userId}`)
       }
     }
+    
+    // For company business column, show quality dot
+    if (isCompanyColumn && quality) {
+      return (
+        <div className="flex items-center gap-2 min-w-0">
+          <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
+          <span
+            className={`w-3 h-3 rounded-full flex-shrink-0 ${quality === 'good' ? 'bg-emerald-500' : quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
+            title={quality === 'good' ? 'Good company' : quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+            style={{ boxShadow: quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
+          />
+        </div>
+      )
+    }
+    
     return <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
   }
 
@@ -169,6 +187,7 @@ const renderCellContent = (column, row, onNavigate) => {
   // Show verification badge for company business name if verified
   if (column.key === 'business' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)) {
     const verified = row.verified || row.contractSigned
+    const quality = row.quality || ''
     
     if (column.showAvatar && column.linkToProfile) {
       const userId = row.id || row.userId || row._id
@@ -182,14 +201,14 @@ const renderCellContent = (column, row, onNavigate) => {
       return (
         <div className="flex items-center gap-2 min-w-0">
           <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
-          {row.quality ? (
+          {quality && (
             <span
-              className={`w-3 h-3 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
-              title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
-              style={{ boxShadow: row.quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : row.quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
+              className={`w-3 h-3 rounded-full flex-shrink-0 ${quality === 'good' ? 'bg-emerald-500' : quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
+              title={quality === 'good' ? 'Good company' : quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+              style={{ boxShadow: quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
             />
-          ) : null}
-          {verified ? <VerificationBadge verified={true} size="sm" /> : null}
+          )}
+          {verified && <VerificationBadge verified={true} size="sm" />}
         </div>
       )
     }
@@ -197,14 +216,14 @@ const renderCellContent = (column, row, onNavigate) => {
     return (
       <div className="flex items-center gap-2 min-w-0">
         <span className="truncate">{renderValue(primaryValue)}</span>
-        {row.quality ? (
+        {quality && (
           <span
-            className={`w-3 h-3 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
-            title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
-            style={{ boxShadow: row.quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : row.quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
+            className={`w-3 h-3 rounded-full flex-shrink-0 ${quality === 'good' ? 'bg-emerald-500' : quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
+            title={quality === 'good' ? 'Good company' : quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+            style={{ boxShadow: quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
           />
-        ) : null}
-        {verified ? <VerificationBadge verified={true} size="sm" /> : null}
+        )}
+        {verified && <VerificationBadge verified={true} size="sm" />}
       </div>
     )
   }

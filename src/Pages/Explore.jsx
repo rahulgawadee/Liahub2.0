@@ -37,22 +37,25 @@ export default function Explore(){
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [connectModalOpen, setConnectModalOpen] = useState(false)
   const [connectTarget, setConnectTarget] = useState(null)
-  const [filterOptions, setFilterOptions] = useState({ locations: [], industries: [] })
+  const [filterOptions, setFilterOptions] = useState({ locations: [], industries: [], domains: [] })
+  const [initialLoadDone, setInitialLoadDone] = useState(false)
   const selectedIncoming = selected ? connections.incoming.find((entry) => entry.peer?.id === selected.id) : null
 
   useEffect(() => {
+    if (initialLoadDone) return
     if (users.loading) return
-    if (!users.results.length) {
-      // Initial load: fetch all companies
-      dispatch(searchUsers({ entity: 'company' }))
-    }
-  }, [dispatch, users.loading, users.results.length])
+    // Initial load: fetch all companies once
+    dispatch(searchUsers({ entity: 'company' }))
+    setInitialLoadDone(true)
+  }, [dispatch, initialLoadDone, users.loading])
 
   useEffect(() => {
+    if (!initialLoadDone) return // Don't search until initial load is done
     if (!users.query || Object.keys(users.query).length === 0) return
-    // Trigger search when query changes
+    // Trigger search when query changes (after initial load)
+    const queryStr = JSON.stringify(users.query)
     dispatch(searchUsers(users.query))
-  }, [dispatch, users.query])
+  }, [dispatch, users.query, initialLoadDone])
 
   useEffect(() => {
     if (users.selectedUserId && !users.entitiesById[users.selectedUserId]) {
@@ -73,12 +76,13 @@ export default function Explore(){
         setFilterOptions({
           locations: Array.isArray(data?.locations) ? data.locations : [],
           industries: Array.isArray(data?.industries) ? data.industries : [],
+          domains: Array.isArray(data?.domains) ? data.domains : [],
         })
       })
       .catch((err) => {
         console.error('Failed to load filter options', err)
         if (!mounted) return
-        setFilterOptions({ locations: [], industries: [] })
+        setFilterOptions({ locations: [], industries: [], domains: [] })
       })
     return () => {
       mounted = false
@@ -188,6 +192,7 @@ export default function Explore(){
                     value={users.query}
                     locations={filterOptions.locations}
                     industries={filterOptions.industries}
+                    domains={filterOptions.domains}
                     onChange={(q) => dispatch(setUsersQuery(q))}
                     onSearch={onSearch}
                   />

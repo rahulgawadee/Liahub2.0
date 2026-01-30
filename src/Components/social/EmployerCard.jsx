@@ -30,6 +30,7 @@ export default function EmployerCard({
   const location = employer.companyProfile?.city 
     ? `${employer.companyProfile.city}${employer.companyProfile.country ? ', ' + employer.companyProfile.country : ''}` 
     : employer.location || null
+  const industry = employer.companyProfile?.industries?.[0] || null
   const website = employer.companyProfile?.website || employer.contact?.website || employer.website || null
 
   return (
@@ -50,14 +51,14 @@ export default function EmployerCard({
                   {displayName}
                 </button>
                 {companyDomain && (
-                  <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                  <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400">
                     <Briefcase className="h-3 w-3" />
                     {companyDomain}
                   </span>
                 )}
               </div>
 
-              {/* single-line info: about · location · website (equal columns) */}
+              {/* single-line info: about · location · industry */}
               <div className="mt-1 text-sm text-muted-foreground grid grid-cols-3 gap-4 min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
                   <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -76,11 +77,11 @@ export default function EmployerCard({
                 </div>
 
                 <div className="flex items-center gap-2 min-w-0">
-                  {website ? (
-                    <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline min-w-0">
-                      <Globe className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{website.replace(/^https?:\/\/(www\.)?/, '')}</span>
-                    </a>
+                  {industry ? (
+                    <>
+                      <Briefcase className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="truncate">{industry}</span>
+                    </>
                   ) : (
                     <span className="truncate text-muted-foreground">&nbsp;</span>
                   )}

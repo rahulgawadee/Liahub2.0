@@ -90,6 +90,7 @@ const companyProfileSchema = new Schema(
   {
     companyName: { type: String, trim: true },
     aboutCompany: { type: String, trim: true },
+    companyDomain: { type: String, trim: true },
     headcount: Number,
     industries: [{ type: String, trim: true }],
     city: { type: String, trim: true },

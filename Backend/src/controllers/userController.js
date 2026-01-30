@@ -30,6 +30,7 @@ const validateSearchUsers = () => [
     .isIn(["all", "student", "company", "school", "university"]),
   query("location").optional().isString(),
   query("industry").optional().isString(),
+  query("domain").optional().isString(),
   query("search").optional().isString(),
   query("skills").optional().isString(),
 ];
@@ -48,6 +49,7 @@ const searchUsers = async (req, res, next) => {
       entity: req.query.entity !== "all" ? req.query.entity : undefined,
       location: req.query.location !== "all" ? req.query.location : undefined,
       industry: req.query.industry !== "all" ? req.query.industry : undefined,
+      domain: req.query.domain !== "all" ? req.query.domain : undefined,
       skills,
       page: Number(req.query.page) || 1,
       limit: Number(req.query.limit) || 20,

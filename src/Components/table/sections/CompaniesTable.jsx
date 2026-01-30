@@ -133,15 +133,14 @@ function CompanyCard({ row, dispatch }){
 					) : (
 						<h3 className="font-semibold text-base leading-tight">
 							<div className="flex items-center gap-2">
+								<span className="truncate">{row.business}</span>
 								{row.quality ? (
 									<span
-										className={`w-2 h-2 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
+										className={`w-3 h-3 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
 										title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+										style={{ boxShadow: row.quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : row.quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
 									/>
-								) : (
-									<span className="w-2 h-2 rounded-full flex-shrink-0 bg-transparent" />
-								)}
-								<span className="truncate">{row.business}</span>
+								) : null}
 							</div>
 						</h3>
 					)}

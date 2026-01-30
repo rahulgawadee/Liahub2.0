@@ -9,6 +9,7 @@ export const searchUsers = createAsyncThunk('users/search', async (query, { reje
       entity = 'all',
       location = 'all',
       industry = 'all',
+      domain = 'all',
       skills = [],
       page = 1,
       limit = 20,
@@ -19,6 +20,7 @@ export const searchUsers = createAsyncThunk('users/search', async (query, { reje
       entity: entity !== 'all' ? entity : undefined,
       location: location !== 'all' ? location : undefined,
       industry: industry !== 'all' ? industry : undefined,
+      domain: domain !== 'all' ? domain : undefined,
       skills: Array.isArray(skills) && skills.length ? skills.join(',') : undefined,
       page,
       limit,
@@ -33,7 +35,7 @@ export const searchUsers = createAsyncThunk('users/search', async (query, { reje
 })
 
 const initialState = {
-  query: { keyword: '', entity: 'all', location: 'all', industry: 'all', skills: [] },
+  query: { keyword: '', entity: 'all', location: 'all', industry: 'all', domain: 'all', skills: [] },
   loading: false,
   error: null,
   results: [],

@@ -23,7 +23,7 @@ const BASE_PROJECTION =
 
 const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const buildSearchFilters = ({ search, entity, location, industry, skills }) => {
+const buildSearchFilters = ({ search, entity, location, industry, domain, skills }) => {
   const filters = [{ status: { $ne: "suspended" } }];
 
   if (entity && ENTITY_ROLE_MAP[entity]) {
@@ -44,6 +44,11 @@ const buildSearchFilters = ({ search, entity, location, industry, skills }) => {
   if (industry) {
     const regex = new RegExp(escapeRegex(industry), "i");
     filters.push({ "companyProfile.industries": regex });
+  }
+
+  if (domain) {
+    const regex = new RegExp(escapeRegex(domain), "i");
+    filters.push({ "companyProfile.companyDomain": regex });
   }
 
   if (Array.isArray(skills) && skills.length) {
@@ -131,11 +136,12 @@ const getCompanyFilters = async () => {
   };
 
   const companies = await User.find(match)
-    .select("contact.location companyProfile.city companyProfile.country companyProfile.industries")
+    .select("contact.location companyProfile.city companyProfile.country companyProfile.industries companyProfile.companyDomain")
     .lean();
 
   const locationSet = new Set();
   const industrySet = new Set();
+  const domainSet = new Set();
 
   companies.forEach((company) => {
     const locations = [
@@ -156,11 +162,16 @@ const getCompanyFilters = async () => {
         .filter(Boolean)
         .forEach((ind) => industrySet.add(ind));
     }
+
+    if (company?.companyProfile?.companyDomain) {
+      domainSet.add(company.companyProfile.companyDomain.trim());
+    }
   });
 
   return {
     locations: Array.from(locationSet).sort(),
     industries: Array.from(industrySet).sort(),
+    domains: Array.from(domainSet).sort(),
   };
 };
 

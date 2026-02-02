@@ -230,6 +230,16 @@ const sanitizeGenericData = (incoming = {}, existing = {}) => {
   Object.keys(incoming).forEach((key) => {
     result[key] = toTrimmedString(incoming[key]);
   });
+
+  // Normalize common field variants to keep frontend keys consistent.
+  if (!result.liaType && result.lia_type) {
+    result.liaType = toTrimmedString(result.lia_type);
+  }
+
+  if (!result.notes && result.note) {
+    result.notes = toTrimmedString(result.note);
+  }
+
   return result;
 };
 
@@ -697,6 +707,7 @@ const mapRecordToRow = (record) => {
         ...common,
         date: normalizeCohortDate(data.date || ''),
         business: data.business || data.name || '',
+		liaType: data.liaType || data.lia_type || '',
         location: data.location || data.place || '',
         contactPerson: data.contactPerson || data.contact || '',
         role: data.role || '',
@@ -718,13 +729,16 @@ const mapRecordToRow = (record) => {
         ...common,
         date: normalizeCohortDate(data.date || ''),
         business: data.business || data.name || data.company || '',
+		liaType: data.liaType || data.lia_type || '',
         location: data.location || data.place || '',
         contactPerson: data.contactPerson || '',
         role: data.role || '',
         contactEmail: data.contactEmail || data.companyEmail || data.email || '',
         phone: data.phone || '',
         orgNumber: data.orgNumber || '',
-        note: data.note || data.notes || '',
+		// Frontend uses `notes` key; keep `note` for backward compatibility.
+		notes: data.notes || data.note || '',
+		note: data.note || data.notes || '',
         nextStepPriority: data.nextStepPriority || data.nextStepPrio || '',
         assignmentProcess: data.assignmentProcess || '',
         program: data.program || '',

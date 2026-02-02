@@ -706,6 +706,7 @@ export default function DataTable() {
         // Create new company record with data from liahub company
         const companyData = {
           business: row.business,
+          liaType: row.liaType || '',
           location: row.location,
           contactPerson: row.contactPerson,
           role: row.role,
@@ -714,6 +715,7 @@ export default function DataTable() {
           orgNumber: row.orgNumber,
           students: row.students || 0,
           date: row.date || '',
+          notes: row.notes || row.note || '',
         }
         
         // Add to companies table

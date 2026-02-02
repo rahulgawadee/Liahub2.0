@@ -245,6 +245,7 @@ export const SECTION_DEFINITIONS = {
 			{ key: 'company', label: 'Company', keys: ['business', 'location'] },
 			{ key: 'contact', label: 'Contact', keys: ['contactPerson', 'contactEmail', 'phone'] },
 			{ key: 'students', label: 'Students', keys: ['students'] },
+			{ key: 'notes', label: 'Notes', keys: ['notes'] },
 		],
 		columns: [
 			{
@@ -267,6 +268,7 @@ export const SECTION_DEFINITIONS = {
 			{ key: 'contactEmail', label: 'Email', type: 'email' },
 			{ key: 'phone', label: 'Phone', type: 'text' },
 			{ key: 'orgNumber', label: 'Company Org/Reg No', type: 'text' },
+			{ key: 'notes', label: 'Notes', type: 'text' },
 			{ key: 'students', label: 'Students', type: 'number', defaultValue: 0 },
 			{
 				key: 'status',
@@ -384,6 +386,7 @@ export const SECTION_DEFINITIONS = {
 			{ key: 'contact', label: 'Contact', keys: ['companyEmail', 'phone'] },
 			{ key: 'location', label: 'Location', keys: ['location'] },
 			{ key: 'students', label: 'Students', keys: ['students'] },
+			{ key: 'notes', label: 'Notes', keys: ['notes'] },
 		],
 		columns: [
 			{
@@ -406,6 +409,7 @@ export const SECTION_DEFINITIONS = {
 			{ key: 'companyEmail', label: 'Email', type: 'email' },
 			{ key: 'phone', label: 'Phone', type: 'text' },
 			{ key: 'orgNumber', label: 'Company Org/Reg No', type: 'text' },
+			{ key: 'notes', label: 'Notes', type: 'text' },
 			{ key: 'students', label: 'Students', type: 'number', defaultValue: 0 },
 			{
 				key: 'status',

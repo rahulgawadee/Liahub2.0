@@ -75,7 +75,9 @@ export const formatDateYYMMDD = (value) => {
 export const formatStudentCohortValue = formatDateYYMMDD
 
 export const SECTION_KEYS = {
+	allStudents: 'allStudents',
 	students: 'students',
+	myStudents: 'myStudents',
 	teachers: 'teachers',
 	educationManagers: 'educationManagers',
 	adminManagement: 'adminManagement',
@@ -91,7 +93,9 @@ const normalizeEntity = (value) => (typeof value === 'string' ? value.toLowerCas
 const normalizeRole = (value) => (typeof value === 'string' ? value.toLowerCase() : '')
 
 export const SECTION_SEQUENCE = [
+	SECTION_KEYS.allStudents,
 	SECTION_KEYS.students,
+	SECTION_KEYS.myStudents,
 	SECTION_KEYS.educationManagers,
 	SECTION_KEYS.teachers,
 	SECTION_KEYS.adminManagement,
@@ -101,6 +105,82 @@ export const SECTION_SEQUENCE = [
 ]
 
 export const SECTION_DEFINITIONS = {
+	[SECTION_KEYS.allStudents]: {
+		recordType: 'all_student',
+		label: 'All Students',
+		singularLabel: 'Student',
+		description: 'All students (complete list).',
+		cardTitleKey: 'name',
+		cardSubtitleKey: 'programme',
+		cardSections: [
+			{ key: 'student_info', label: 'Student', keys: ['name', 'programme', 'cohort'] },
+			{ key: 'contact', label: 'Contact', keys: ['email', 'phone'] },
+			{ key: 'notes', label: 'Notes', keys: ['notes', 'assignmentProcess', 'infoFromLeader'] },
+		],
+		columns: [
+			{
+				key: 'cohort',
+				label: 'Date',
+				type: 'text',
+				isDate: true,
+				format: DATE_FORMAT_YEARMONTHDAY_SHORT,
+				placeholder: 'YY/MM/DD (e.g., 25/09/04)',
+				helpText: 'Enter date as YY/MM/DD, for example 25/09/04',
+				pattern: DATE_FORMAT_PATTERN.source,
+				title: 'Use YY/MM/DD format, e.g. 25/09/04',
+				inputMode: 'numeric',
+				maxLength: 8,
+			},
+			{ key: 'notes', label: 'Notes', type: 'text' },
+			{ key: 'assignmentProcess', label: 'Assignment/Selection Process', type: 'text' },
+			{
+				key: 'programme',
+				label: 'NBI/Handelsakadmin program',
+				type: 'select',
+				options: PROGRAMME_OPTIONS,
+			},
+			{
+				key: 'educationLeader',
+				label: 'Education leader',
+				type: 'select',
+				options: [
+					'Zuzana Polievka',
+					'Ingen',
+					'Maria Holm',
+					'Magdalena Fagerlind',
+				],
+			},
+			{ key: 'name', label: "Student's name", type: 'text', required: true, showAvatar: true, linkToProfile: true },
+			{ key: 'email', label: "Student's email (school)", type: 'email' },
+			{ key: 'infoFromLeader', label: 'Info from UL', type: 'text' },
+			{
+				key: 'status',
+				label: 'Status',
+				type: 'select',
+				variant: 'status',
+				defaultValue: DEFAULT_STATUS,
+				excludeFromData: true,
+				options: STATUS_OPTIONS,
+			},
+		],
+		upload: {
+			title: 'Upload Student Data (Excel)',
+			endpoint: '/dashboard/school/upload-all-students-excel',
+			expectedColumns: [
+				'Date',
+				'Notera',
+				'Tilldela/urvalsprocess',
+				'NBI/Handelsakadmin program',
+				'UL',
+				'Studerande Namn',
+				'Studerande mejladress (skola)',
+				'Info från UL',
+				'Status',
+			],
+		},
+		addEnabled: true,
+		defaultStatus: DEFAULT_STATUS,
+	},
 	[SECTION_KEYS.students]: {
 		recordType: 'student',
 		label: 'Students',
@@ -192,6 +272,75 @@ export const SECTION_DEFINITIONS = {
 				'Studerande Namn',
 				'Studerande mejladress (skola)',
 				'Info från UL',
+			],
+		},
+		addEnabled: true,
+		defaultStatus: DEFAULT_STATUS,
+	},
+	[SECTION_KEYS.myStudents]: {
+		recordType: 'my_student',
+		label: 'My Students',
+		singularLabel: 'Student',
+		description: 'Student list before assigning internships (education manager view).',
+		cardTitleKey: 'name',
+		cardSubtitleKey: 'programme',
+		cardSections: [
+			{ key: 'student_info', label: 'Student', keys: ['name', 'programme', 'cohort'] },
+			{ key: 'contact', label: 'Contact', keys: ['email'] },
+			{ key: 'notes', label: 'Note', keys: ['notes', 'assignmentProcess', 'infoFromLeader'] },
+		],
+		columns: [
+			{
+				key: 'cohort',
+				label: 'Date',
+				type: 'text',
+				isDate: true,
+				format: DATE_FORMAT_YEARMONTHDAY_SHORT,
+				placeholder: 'YY/MM/DD (e.g., 25/09/04)',
+				helpText: 'Enter date as YY/MM/DD, for example 25/09/04',
+				pattern: DATE_FORMAT_PATTERN.source,
+				title: 'Use YY/MM/DD format, e.g. 25/09/04',
+				inputMode: 'numeric',
+				maxLength: 8,
+			},
+			{ key: 'notes', label: 'Notes', type: 'text' },
+			{ key: 'assignmentProcess', label: 'Assignment/Selection Process', type: 'text' },
+			{
+				key: 'programme',
+				label: 'NBI/Handelsakademin program',
+				type: 'text',
+				helpText: 'Auto-filled from your Education Manager profile.',
+			},
+			{
+				key: 'educationLeader',
+				label: 'Education leader',
+				type: 'text',
+				helpText: 'Auto-filled from your account.',
+			},
+			{ key: 'name', label: "Student's name", type: 'text', required: true, showAvatar: true, linkToProfile: true },
+			{ key: 'email', label: "Student's email (school)", type: 'email' },
+			{ key: 'infoFromLeader', label: 'Info from UL', type: 'text' },
+			{
+				key: 'status',
+				label: 'Status',
+				type: 'select',
+				variant: 'status',
+				defaultValue: DEFAULT_STATUS,
+				excludeFromData: true,
+				options: STATUS_OPTIONS,
+			},
+		],
+		upload: {
+			title: 'Upload My Students (Excel)',
+			endpoint: '/dashboard/school/upload-my-students-excel',
+			expectedColumns: [
+				'Date',
+				'Notera',
+				'Tilldela/urvalsprocess',
+				"Student's name",
+				"Student's email (school)",
+				'Info from UL',
+				'Status',
 			],
 		},
 		addEnabled: true,
@@ -680,6 +829,12 @@ export const buildRecordPayloadForSection = (sectionKey, values = {}) => {
 		if (assignedByUserId) {
 			data.assignedByUserId = assignedByUserId
 		}
+		if (data.companySelect !== undefined) {
+			delete data.companySelect
+		}
+	}
+
+	if (sectionKey === SECTION_KEYS.myStudents) {
 		if (data.companySelect !== undefined) {
 			delete data.companySelect
 		}

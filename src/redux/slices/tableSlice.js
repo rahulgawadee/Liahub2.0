@@ -224,18 +224,26 @@ const tableSlice = createSlice({
         section.mutationStatus = 'pending'
         section.mutationError = null
       })
-      .addCase(createSchoolRecord.fulfilled, (state, { payload }) => {
-        const { sectionKey, record } = payload || {}
-        const section = state.sections[sectionKey]
-        if (!section || !record) return
-        section.mutationStatus = 'idle'
-        section.mutationError = null
-        const existingIndex = section.data.findIndex((row) => row.id === record.id)
-        if (existingIndex >= 0) {
-          section.data[existingIndex] = record
-        } else {
-          section.data = [record, ...section.data]
-        }
+      .addCase(createSchoolRecord.fulfilled, (state, action) => {
+        const requestedKey = action.meta.arg.sectionKey
+        const { sectionKey: responseKey, record } = action.payload || {}
+        if (!record) return
+
+        const keysToUpdate = [requestedKey, responseKey].filter(Boolean)
+        const uniqueKeys = [...new Set(keysToUpdate)]
+
+        uniqueKeys.forEach((key) => {
+          const section = state.sections[key]
+          if (!section) return
+          section.mutationStatus = 'idle'
+          section.mutationError = null
+          const existingIndex = section.data.findIndex((row) => row.id === record.id)
+          if (existingIndex >= 0) {
+            section.data[existingIndex] = record
+          } else {
+            section.data = [record, ...section.data]
+          }
+        })
       })
       .addCase(createSchoolRecord.rejected, (state, action) => {
         const { sectionKey } = action.meta.arg
@@ -253,31 +261,25 @@ const tableSlice = createSlice({
       })
       .addCase(updateSchoolRecord.fulfilled, (state, action) => {
         const requestedKey = action.meta.arg.sectionKey
-        const requestedSection = requestedKey ? state.sections[requestedKey] : undefined
-        if (requestedSection) {
-          requestedSection.mutationStatus = 'idle'
-          requestedSection.mutationError = null
-        }
-
         const { sectionKey: responseKey, record } = action.payload || {}
         if (!record) return
 
-        if (requestedKey && requestedKey !== responseKey && requestedSection) {
-          requestedSection.data = requestedSection.data.filter((row) => row.id !== record.id)
-        }
+        const keysToUpdate = [requestedKey, responseKey].filter(Boolean)
+        const uniqueKeys = [...new Set(keysToUpdate)]
 
-        const targetSection = state.sections[responseKey]
-        if (!targetSection) return
+        uniqueKeys.forEach((key) => {
+          const section = state.sections[key]
+          if (!section) return
+          section.mutationStatus = 'idle'
+          section.mutationError = null
 
-        targetSection.mutationStatus = 'idle'
-        targetSection.mutationError = null
-
-        const index = targetSection.data.findIndex((row) => row.id === record.id)
-        if (index >= 0) {
-          targetSection.data[index] = record
-        } else {
-          targetSection.data = [record, ...targetSection.data]
-        }
+          const index = section.data.findIndex((row) => row.id === record.id)
+          if (index >= 0) {
+            section.data[index] = record
+          } else {
+            section.data = [record, ...section.data]
+          }
+        })
       })
       .addCase(updateSchoolRecord.rejected, (state, action) => {
         const { sectionKey } = action.meta.arg

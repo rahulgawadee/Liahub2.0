@@ -37,7 +37,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { Label } from '@/Components/ui/label'
 import { Select, SelectOption } from '@/Components/ui/select'
 import { Avatar, AvatarImage, AvatarFallback } from '@/Components/ui/avatar'
-import { Search, Upload, FileSpreadsheet, Edit, Trash2, Eye, User, GraduationCap, Users, BookOpen, Shield, Building2, Briefcase, Building, Filter, X, ChevronDown, ArrowRight, Loader2 } from 'lucide-react'
+import { Search, Upload, FileSpreadsheet, Edit, Trash2, Eye, User, GraduationCap, Users, BookOpen, Shield, Building2, Briefcase, Building, Filter, X, ChevronDown, ArrowRight, Loader2, UserPlus } from 'lucide-react'
 import apiClient from '@/lib/apiClient'
 import VerificationBadge from '@/Components/shared/VerificationBadge'
 import { getImageUrl } from '@/lib/imageUtils'
@@ -125,6 +125,17 @@ const renderCellContent = (column, row, onNavigate) => {
 
   // Handle avatar + profile link columns
   if (column.showAvatar && column.linkToProfile) {
+    // Some columns need extra badges/formatting; let their special-case blocks handle avatar rendering.
+    const isStudentsName = column.key === 'name' && row.sectionKey === SECTION_KEYS.students
+    const isMyStudentsName = column.key === 'name' && row.sectionKey === SECTION_KEYS.myStudents
+    const isCompanyBusiness =
+      column.key === 'business' &&
+      (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)
+    const isStudentsPlacement = column.key === 'placement' && row.sectionKey === SECTION_KEYS.students
+
+    if (isStudentsName || isMyStudentsName || isCompanyBusiness || isStudentsPlacement) {
+      // fall through
+    } else {
     const userId = row.id || row.userId || row._id
     const imageUrl = row.avatarUrl || row.profileImage || row.avatar
     
@@ -135,7 +146,8 @@ const renderCellContent = (column, row, onNavigate) => {
       }
     }
     
-    return <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
+      return <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
+    }
   }
 
   if (column.variant === 'status') {
@@ -198,6 +210,34 @@ const renderCellContent = (column, row, onNavigate) => {
         ) : isRejected ? (
           <span className="inline-flex items-center rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive">
             Rejected
+          </span>
+        ) : null}
+      </div>
+    )
+  }
+
+  if (column.key === 'name' && row.sectionKey === SECTION_KEYS.myStudents) {
+    const assigned = Boolean(row.internshipAssigned)
+
+    const userId = row.id || row.userId || row._id
+    const imageUrl = row.avatarUrl || row.profileImage || row.avatar
+    const handleClick = (e) => {
+      e.stopPropagation()
+      if (userId && onNavigate) {
+        onNavigate(`/profile/${userId}`)
+      }
+    }
+
+    return (
+      <div className="flex items-center gap-2 min-w-0">
+        {column.showAvatar && column.linkToProfile ? (
+          <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
+        ) : (
+          <span className="truncate">{renderValue(primaryValue)}</span>
+        )}
+        {assigned ? (
+          <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300">
+            Assigned
           </span>
         ) : null}
       </div>
@@ -354,6 +394,10 @@ export default function DataTable() {
     const normalizedEntity = typeof entity === 'string' ? entity.toLowerCase() : ''
     return SECTION_SEQUENCE.filter((key) => {
       if (!allowed.includes(key)) return false
+      // "My Students" is shown as a toggle under Students (education manager only), not as a top-level tab.
+      if (key === SECTION_KEYS.myStudents) return false
+      // "All Students" is shown as a toggle under Students, not as a top-level tab.
+      if (key === SECTION_KEYS.allStudents) return false
       if (normalizedEntity === 'company' && (key === SECTION_KEYS.companies || key === SECTION_KEYS.leadCompanies)) {
         return false
       }
@@ -362,13 +406,25 @@ export default function DataTable() {
       }
       return true
     })
-  }, [entity])
+  }, [entity, isEducationManager])
+
+  React.useEffect(() => {
+    if (active === SECTION_KEYS.myStudents && !isEducationManager) {
+      dispatch(setActiveSection(SECTION_KEYS.students))
+    }
+  }, [active, dispatch, isEducationManager])
 
   const definition = SECTION_DEFINITIONS[active]
   const uploadConfig = definition?.upload || null
   const sectionState = useSelector(selectSectionData(active))
   const columns = (definition?.columns || []).filter(col => col.key !== 'companySelect')
   const statusOptions = React.useMemo(() => getStatusOptions(), [])
+
+  const [editorSectionKey, setEditorSectionKey] = React.useState(null)
+  const editorSectionKeySafe = editorSectionKey || active
+  const editorDefinition = SECTION_DEFINITIONS[editorSectionKeySafe]
+  const editorSectionState = useSelector(selectSectionData(editorSectionKeySafe))
+  const [pendingMyStudentId, setPendingMyStudentId] = React.useState(null)
 
   const [search, setSearch] = React.useState('')
   const [programmeFilter, setProgrammeFilter] = React.useState('')
@@ -427,10 +483,14 @@ export default function DataTable() {
 
   React.useEffect(() => {
     if (!allowedSections.length) return
-    if (!allowedSections.includes(active)) {
+    const isAllowedHiddenSubTab =
+      ((isEducationManager && active === SECTION_KEYS.myStudents) || active === SECTION_KEYS.allStudents) &&
+      allowedSections.includes(SECTION_KEYS.students)
+
+    if (!allowedSections.includes(active) && !isAllowedHiddenSubTab) {
       dispatch(setActiveSection(allowedSections[0]))
     }
-  }, [active, allowedSections, dispatch])
+  }, [active, allowedSections, dispatch, isEducationManager])
 
   React.useEffect(() => {
     setProgrammeDialogOpen(false)
@@ -480,7 +540,10 @@ export default function DataTable() {
             return rowProgramme && allowedProgrammes.includes(rowProgramme)
           }
         }
-        if (normalizedEntity === 'company' && row.sectionKey === SECTION_KEYS.students) {
+        if (
+          normalizedEntity === 'company' &&
+          (row.sectionKey === SECTION_KEYS.students || row.sectionKey === SECTION_KEYS.allStudents)
+        ) {
           const assignedCompanyId = String(row.assignedCompanyId || '').trim()
           if (!normalizedOrgId && !normalizedCompanyName) {
             return true
@@ -520,7 +583,7 @@ export default function DataTable() {
 
   // Extract unique programme values from students data for filter
   const availableProgrammes = React.useMemo(() => {
-    if (active !== SECTION_KEYS.students) return []
+    if (![SECTION_KEYS.students, SECTION_KEYS.myStudents, SECTION_KEYS.allStudents].includes(active)) return []
     const seen = new Set()
     const programmes = []
     rows.forEach((row) => {
@@ -537,7 +600,7 @@ export default function DataTable() {
     let working = rows
 
     // Apply programme filter for students section
-    if (active === SECTION_KEYS.students && programmeFilter) {
+    if ((active === SECTION_KEYS.students || active === SECTION_KEYS.myStudents || active === SECTION_KEYS.allStudents) && programmeFilter) {
       const target = programmeFilter.toLowerCase()
       working = working.filter((row) => String(row.programme || row.program || '').trim().toLowerCase() === target)
     }
@@ -548,14 +611,30 @@ export default function DataTable() {
     }
 
     const term = search.trim().toLowerCase()
-    if (!term) return working
-    return working.filter((row) =>
-      columns.some((column) => {
-        const values = [row[column.key]]
-        if (column.secondaryKey) values.push(row[column.secondaryKey])
-        return values.some((value) => value && String(value).toLowerCase().includes(term))
-      }),
-    )
+    if (term) {
+      working = working.filter((row) =>
+        columns.some((column) => {
+          const values = [row[column.key]]
+          if (column.secondaryKey) values.push(row[column.secondaryKey])
+          return values.some((value) => value && String(value).toLowerCase().includes(term))
+        }),
+      )
+    }
+
+    // My Students: keep unassigned first, assigned at bottom
+    if (active === SECTION_KEYS.myStudents) {
+      working = working
+        .map((row, idx) => ({ row, idx }))
+        .sort((a, b) => {
+          const aAssigned = Boolean(a.row?.internshipAssigned)
+          const bAssigned = Boolean(b.row?.internshipAssigned)
+          if (aAssigned !== bAssigned) return aAssigned ? 1 : -1
+          return a.idx - b.idx
+        })
+        .map(({ row }) => row)
+    }
+
+    return working
   }, [rows, columns, search, active, liahubProgrammeFilter, programmeFilter])
 
   const visibleRows = tableVisible ? filteredRows.slice(0, visibleRowsLimit) : []
@@ -580,8 +659,8 @@ export default function DataTable() {
 
   const loading = sectionState?.status === 'loading'
   const error = sectionState?.error
-  const mutationPending = sectionState?.mutationStatus === 'pending'
-  const mutationError = sectionState?.mutationError
+  const mutationPending = editorSectionState?.mutationStatus === 'pending'
+  const mutationError = editorSectionState?.mutationError
   const [deleteSuccess, setDeleteSuccess] = React.useState(null)
 
   const allowAdd = canAddToSection(entity, active, roles)
@@ -602,23 +681,39 @@ export default function DataTable() {
     [educationManagersList],
   )
 
+  const currentEducationManagerRow = React.useMemo(() => {
+    if (!loggedInUserId) return null
+    return (
+      educationManagersList.find((manager) => {
+        const id = manager?.id || manager?._id || ''
+        return id && String(id) === String(loggedInUserId)
+      }) || null
+    )
+  }, [educationManagersList, loggedInUserId])
+
   const resetEditorState = React.useCallback(() => {
     setEditorOpen(false)
     setEditorMode('add')
     setSelectedRow(null)
     setFormValues({})
+    setEditorSectionKey(null)
+    setPendingMyStudentId(null)
     hasPendingSubmissionRef.current = false
   }, [])
 
-  const openEditor = React.useCallback(
-    (mode, row = null, seedValues = {}) => {
-      if (!definition) return
+  const openEditorForSection = React.useCallback(
+    (sectionKey, mode, row = null, seedValues = {}, options = {}) => {
+      const targetDefinition = SECTION_DEFINITIONS[sectionKey]
+      if (!targetDefinition) return
+
+      setEditorSectionKey(sectionKey)
       setEditorMode(mode)
       setSelectedRow(row)
-      const initialValues = buildInitialValuesForSection(active, row)
 
+      const initialValues = buildInitialValuesForSection(sectionKey, row)
       let enrichedValues = initialValues
-      if (mode === 'add' && active === SECTION_KEYS.students) {
+
+      if (mode === 'add' && sectionKey === SECTION_KEYS.students) {
         const assignedByName = user?.name
           ? [user.name.first, user.name.last].filter(Boolean).join(' ')
           : user?.fullName || ''
@@ -631,17 +726,51 @@ export default function DataTable() {
         }
       }
 
+      if (mode === 'add' && sectionKey === SECTION_KEYS.myStudents) {
+        const educationLeader =
+          currentEducationManagerRow?.leader ||
+          (user?.name
+            ? [user.name.first, user.name.last].filter(Boolean).join(' ')
+            : user?.fullName || user?.username || '')
+
+        const programme =
+          currentEducationManagerRow?.programme ||
+          currentEducationManagerRow?.program ||
+          educationManagerProgrammes[0] ||
+          ''
+
+        enrichedValues = {
+          ...initialValues,
+          educationLeader,
+          programme,
+        }
+      }
+
       const mergedValues = { ...enrichedValues, ...seedValues }
-      if (active === SECTION_KEYS.liahubCompanies && seedValues.program) {
+      if (sectionKey === SECTION_KEYS.liahubCompanies && seedValues.program) {
         const manager = findEducationManagerForProgramme(seedValues.program)
         if (manager?.leader) mergedValues.educationLeader = manager.leader
         if (manager?.contact) mergedValues.educationLeaderEmail = manager.contact
       }
+
+      if (options?.pendingMyStudentId) {
+        setPendingMyStudentId(String(options.pendingMyStudentId))
+      } else {
+        setPendingMyStudentId(null)
+      }
+
       setFormValues(mergedValues)
       setEditorOpen(true)
       hasPendingSubmissionRef.current = false
     },
-    [active, definition, user],
+    [currentEducationManagerRow, educationManagerProgrammes, findEducationManagerForProgramme, user],
+  )
+
+  const openEditor = React.useCallback(
+    (mode, row = null, seedValues = {}) => {
+      openEditorForSection(active, mode, row, seedValues)
+    },
+    [active, openEditorForSection],
   )
 
   const isLiahubCompanies = active === SECTION_KEYS.liahubCompanies
@@ -652,6 +781,37 @@ export default function DataTable() {
     setSelectedProgramme((prev) => prev || programmeOptions[0] || '')
     setProgrammeDialogOpen(true)
   }, [programmeOptions])
+
+  const handleAssignMyStudent = React.useCallback(
+    (rowWithSectionKey) => {
+      if (!rowWithSectionKey) return
+      if (rowWithSectionKey.internshipAssigned) {
+        setDetailRow(rowWithSectionKey)
+        setDetailOpen(true)
+        return
+      }
+
+      const seedValues = {
+        cohort: rowWithSectionKey.cohort || '',
+        programme: rowWithSectionKey.programme || '',
+        name: rowWithSectionKey.name || '',
+        email: rowWithSectionKey.email || '',
+        notes: rowWithSectionKey.notes || '',
+        assignmentProcess: rowWithSectionKey.assignmentProcess || '',
+        educationLeader: rowWithSectionKey.educationLeader || '',
+        infoFromLeader: rowWithSectionKey.infoFromLeader || '',
+      }
+
+      openEditorForSection(
+        SECTION_KEYS.students,
+        'add',
+        null,
+        seedValues,
+        { pendingMyStudentId: rowWithSectionKey.id },
+      )
+    },
+    [openEditorForSection],
+  )
 
   const handleAddClick = React.useCallback(() => {
     if (requiresProgrammeSelection) {
@@ -686,7 +846,11 @@ export default function DataTable() {
         } else {
           await dispatch(deleteSchoolRecord({ sectionKey: active, id: deleteId })).unwrap()
         }
-        if (active === SECTION_KEYS.students) {
+
+        // Ensure list refresh immediately after delete so UI is consistent.
+        dispatch(fetchStudentDashboard())
+
+        if (active === SECTION_KEYS.students || active === SECTION_KEYS.myStudents) {
           const studentName = row.name || row.studentName || 'Student'
           setDeleteSuccess({ name: studentName })
         }
@@ -760,7 +924,7 @@ export default function DataTable() {
         // ignore
       }
 
-      const payload = buildRecordPayloadForSection(active, formValues)
+  const payload = buildRecordPayloadForSection(editorSectionKeySafe, formValues)
 
       // ADD flow
       if (editorMode === 'add') {
@@ -768,18 +932,49 @@ export default function DataTable() {
         shouldRefreshRef.current = true
         
         // Check if adding a company to trigger contract creation
-        const isCompanySection = active === SECTION_KEYS.companies || active === SECTION_KEYS.leadCompanies
+        const isCompanySection = editorSectionKeySafe === SECTION_KEYS.companies || editorSectionKeySafe === SECTION_KEYS.leadCompanies
         
         if (isCompanySection) {
           try {
-            await dispatch(createSchoolRecord({ sectionKey: active, payload })).unwrap()
+            await dispatch(createSchoolRecord({ sectionKey: editorSectionKeySafe, payload })).unwrap()
             resetEditorState()
             // Contract will be auto-created from template on backend
           } catch (err) {
             console.error('Failed to create company:', err)
           }
         } else {
-          dispatch(createSchoolRecord({ sectionKey: active, payload }))
+          if (editorSectionKeySafe === SECTION_KEYS.students && pendingMyStudentId) {
+            try {
+              const created = await dispatch(createSchoolRecord({ sectionKey: editorSectionKeySafe, payload })).unwrap()
+              const assignedId = created?.record?.id || created?.record?._id || created?.id || ''
+              if (assignedId) {
+                await dispatch(
+                  updateSchoolRecord({
+                    sectionKey: SECTION_KEYS.myStudents,
+                    id: pendingMyStudentId,
+                    payload: {
+                      type: 'my_student',
+                      status: 'Active',
+                      data: {
+                        internshipAssigned: 'true',
+                        assignedStudentId: String(assignedId),
+                      },
+                    },
+                  }),
+                ).unwrap()
+              }
+
+              // Ensure the My Students list updates immediately (badge + sorting).
+              dispatch(fetchStudentDashboard())
+              resetEditorState()
+              return
+            } catch (err) {
+              console.error('Failed to assign student from My Students:', err)
+              hasPendingSubmissionRef.current = false
+              return
+            }
+          }
+          dispatch(createSchoolRecord({ sectionKey: editorSectionKeySafe, payload }))
         }
         return
       }
@@ -787,7 +982,7 @@ export default function DataTable() {
       // EDIT flow
       if (editorMode === 'edit' && selectedRow?.id) {
         // Special-case: education managers and admin management entries are backed by User documents, not SchoolRecord.
-        if (active === SECTION_KEYS.educationManagers || active === SECTION_KEYS.adminManagement) {
+        if (editorSectionKeySafe === SECTION_KEYS.educationManagers || editorSectionKeySafe === SECTION_KEYS.adminManagement) {
           // Build user payload from form values. Map common fields to name, contact and staffProfile.
           const userPayload = {}
 
@@ -842,17 +1037,17 @@ export default function DataTable() {
         } else {
           hasPendingSubmissionRef.current = true
           shouldRefreshRef.current = true
-          dispatch(updateSchoolRecord({ sectionKey: active, id: selectedRow.id, payload }))
+          dispatch(updateSchoolRecord({ sectionKey: editorSectionKeySafe, id: selectedRow.id, payload }))
         }
       }
     },
-    [active, definition, dispatch, editorMode, formValues, selectedRow, resetEditorState],
+    [dispatch, editorMode, editorSectionKeySafe, formValues, pendingMyStudentId, resetEditorState, selectedRow],
   )
 
   React.useEffect(() => {
     if (!editorOpen) return
     if (!hasPendingSubmissionRef.current) return
-    if (sectionState?.mutationStatus === 'pending') return
+    if (editorSectionState?.mutationStatus === 'pending') return
 
     if (mutationError) {
       hasPendingSubmissionRef.current = false
@@ -862,11 +1057,11 @@ export default function DataTable() {
     if (editorMode === 'add' || editorMode === 'edit') {
       resetEditorState()
     }
-  }, [editorMode, editorOpen, mutationError, resetEditorState, sectionState?.mutationStatus])
+  }, [editorMode, editorOpen, mutationError, resetEditorState, editorSectionState?.mutationStatus])
 
   React.useEffect(() => {
     if (!shouldRefreshRef.current) return
-    if (sectionState?.mutationStatus === 'pending') return
+    if (editorSectionState?.mutationStatus === 'pending') return
 
     if (mutationError) {
       shouldRefreshRef.current = false
@@ -875,11 +1070,11 @@ export default function DataTable() {
 
     shouldRefreshRef.current = false
     dispatch(fetchStudentDashboard())
-  }, [dispatch, mutationError, sectionState?.mutationStatus])
+  }, [dispatch, editorSectionState?.mutationStatus, mutationError])
 
   const formFields = React.useMemo(() => {
-    const base = getFormFieldsForSection(active)
-    if (![SECTION_KEYS.students, SECTION_KEYS.liahubCompanies, SECTION_KEYS.educationManagers].includes(active)) {
+    const base = getFormFieldsForSection(editorSectionKeySafe)
+    if (![SECTION_KEYS.students, SECTION_KEYS.myStudents, SECTION_KEYS.liahubCompanies, SECTION_KEYS.educationManagers].includes(editorSectionKeySafe)) {
       return base
     }
     return base.map((field) => {
@@ -888,7 +1083,7 @@ export default function DataTable() {
       }
       return field
     })
-  }, [active, programmeOptions])
+  }, [editorSectionKeySafe, programmeOptions])
 
   // Companies list for dropdown autofill
   const [companiesList, setCompaniesList] = React.useState([])
@@ -937,7 +1132,7 @@ export default function DataTable() {
   const handleFieldChange = React.useCallback((key, value) => {
     setFormValues((prev) => {
       const next = { ...prev, [key]: value }
-      if (active === SECTION_KEYS.students && key === 'programme') {
+      if ((editorSectionKeySafe === SECTION_KEYS.students || editorSectionKeySafe === SECTION_KEYS.myStudents) && key === 'programme') {
         const normalized = normalizeProgrammeValue(value)
         const matchingManagers = educationManagersList.filter((manager) => {
           const managerProgramme = normalizeProgrammeValue(manager?.programme || manager?.program)
@@ -946,7 +1141,7 @@ export default function DataTable() {
         const leaderNames = matchingManagers.map((manager) => manager?.leader).filter(Boolean)
         next.educationLeader = leaderNames
       }
-      if (active === SECTION_KEYS.liahubCompanies && key === 'program') {
+      if (editorSectionKeySafe === SECTION_KEYS.liahubCompanies && key === 'program') {
         const manager = findEducationManagerForProgramme(value)
         if (manager?.leader) {
           next.educationLeader = manager.leader
@@ -957,7 +1152,7 @@ export default function DataTable() {
       }
       return next
     })
-  }, [active, educationManagersList, findEducationManagerForProgramme])
+  }, [editorSectionKeySafe, educationManagersList, findEducationManagerForProgramme])
 
   // Helper to apply company autofill into form values
   const applyCompanyAutofill = React.useCallback(async (companyId) => {
@@ -1139,7 +1334,10 @@ export default function DataTable() {
         <div className="flex flex-wrap justify-center gap-2 p-4">{allowedSections.map((sectionKey) => {
             const def = SECTION_DEFINITIONS[sectionKey]
             if (!def) return null
-            const isActive = sectionKey === active
+              const isStudentsTab = sectionKey === SECTION_KEYS.students
+              const isActive = isStudentsTab
+                ? (active === SECTION_KEYS.students || active === SECTION_KEYS.myStudents || active === SECTION_KEYS.allStudents)
+                : sectionKey === active
             const IconComponent = getSectionIcon(sectionKey)
             return (
               <button
@@ -1160,12 +1358,54 @@ export default function DataTable() {
         </div>
 
         <div className="flex flex-col gap-4 p-4">
+          {(active === SECTION_KEYS.students || active === SECTION_KEYS.myStudents || active === SECTION_KEYS.allStudents) && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => dispatch(setActiveSection(SECTION_KEYS.allStudents))}
+                className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
+                  active === SECTION_KEYS.allStudents
+                    ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
+                    : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                }`}
+              >
+                All students
+              </button>
+
+              {isEducationManager && (
+                <button
+                  type="button"
+                  onClick={() => dispatch(setActiveSection(SECTION_KEYS.myStudents))}
+                  className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
+                    active === SECTION_KEYS.myStudents
+                      ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
+                      : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                  }`}
+                >
+                  My students
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => dispatch(setActiveSection(SECTION_KEYS.students))}
+                className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
+                  active === SECTION_KEYS.students
+                    ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
+                    : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                }`}
+              >
+                Assigned
+              </button>
+            </div>
+          )}
+
           <Toolbar
             search={search}
           onSearch={setSearch}
           totalRows={rows.length}
           filteredRows={filteredRows.length}
-          currentSectionLabel={definition.label}
+          currentSectionLabel={(active === SECTION_KEYS.myStudents || active === SECTION_KEYS.allStudents) ? (SECTION_DEFINITIONS[SECTION_KEYS.students]?.label || 'Students') : definition.label}
           allowAdd={allowAdd}
           onAdd={handleAddClick}
           showUploadButton={showUploadButton}
@@ -1173,7 +1413,7 @@ export default function DataTable() {
           uploadLabel={uploadConfig?.buttonLabel || 'Upload Excel'}
           showDeleteAllButton={showDeleteAllButton}
           onDeleteAll={() => openProgrammeDialog('deleteAll')}
-          showProgrammeFilter={active === SECTION_KEYS.students}
+          showProgrammeFilter={active === SECTION_KEYS.students || active === SECTION_KEYS.myStudents || active === SECTION_KEYS.allStudents}
           availableProgrammes={availableProgrammes}
           programmeFilter={programmeFilter}
           onProgrammeFilterChange={setProgrammeFilter}
@@ -1235,7 +1475,11 @@ export default function DataTable() {
             </div>
           ) : !visibleRows.length && !loading ? (
             <div className="rounded-2xl bg-background/60 px-6 py-12 text-center text-sm text-muted-foreground">
-              {search ? 'No records match your search.' : 'No data available for this section yet.'}
+              {search
+                ? 'No records match your search.'
+                : active === SECTION_KEYS.myStudents
+                  ? 'No My Students records yet. Use “Add new” or “Upload Excel” to add students.'
+                  : 'No data available for this section yet.'}
             </div>
           ) : (
             <div className="overflow-x-auto rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] bg-[#0a0a0a] border border-[#0a0a0a]">
@@ -1252,7 +1496,7 @@ export default function DataTable() {
                         </div>
                       </th>
                     ))}
-                    {(allowEdit || isEducationManagerSection || active === SECTION_KEYS.liahubCompanies) && (
+                    {(allowEdit || isEducationManagerSection || active === SECTION_KEYS.liahubCompanies || (active === SECTION_KEYS.myStudents && isEducationManager)) && (
                       <th className="px-5 text-left font-bold text-white">
                         <div className="flex items-center gap-2">
                           <Shield className="h-3.5 w-3.5" />
@@ -1264,12 +1508,13 @@ export default function DataTable() {
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {visibleRows.map((row) => {
+                    const rowWithSectionKey = row?.sectionKey ? row : { ...row, sectionKey: active }
                     const isSelfEducationManager = isEducationManagerSection && loggedInUserId && String(row.id) === loggedInUserId
                     const rowAllowsEdit = isEducationManagerSection ? (isSchoolAdmin || isSelfEducationManager) : allowEdit
                     const rowAllowsDelete = isEducationManagerSection ? isSchoolAdmin : rowAllowsEdit
                     const isMoving = movingRowId === (row.id || row._id)
                     const showCompanyStyling = active === SECTION_KEYS.companies || active === SECTION_KEYS.liahubCompanies
-                    const companyTheme = showCompanyStyling ? getCompanyRowTheme(row) : null
+                    const companyTheme = showCompanyStyling ? getCompanyRowTheme(rowWithSectionKey) : null
                     return (
                     <tr
                       key={row.id}
@@ -1277,7 +1522,8 @@ export default function DataTable() {
                       style={companyTheme ? { backgroundImage: companyTheme.gradient } : undefined}
                       onClick={(e) => {
                         if (e.target.closest('[data-no-detail-on-click]')) return
-                        setDetailRow(row)
+
+                        setDetailRow(rowWithSectionKey)
                         setDetailOpen(true)
                       }}
                       >
@@ -1303,7 +1549,7 @@ export default function DataTable() {
                         </td>
                       )}
                       {columns.map((column) => {
-                        const title = buildTitle(column, row)
+                        const title = buildTitle(column, rowWithSectionKey)
                         const cellClasses = ['px-5 py-4 align-middle']
                         if (column.grow) cellClasses.push('max-w-[280px] whitespace-normal break-words')
                         else cellClasses.push('max-w-[240px] whitespace-nowrap overflow-hidden text-ellipsis')
@@ -1312,19 +1558,29 @@ export default function DataTable() {
                           <td key={column.key} className={cellClasses.join(' ')} title={title}>
                             <div className="flex items-center gap-2.5">
                               <div className="min-w-0 flex-1 text-sm leading-relaxed text-white font-medium">
-                                {renderCellContent(column, row)}
+                                {renderCellContent(column, rowWithSectionKey)}
                               </div>
                             </div>
                           </td>
                         )
                       })}
-                      {(rowAllowsEdit || active === SECTION_KEYS.liahubCompanies || isEducationManagerSection) && (
-                        <td className="px-5 py-4 text-right" data-no-detail-on-click>
+                      {(rowAllowsEdit || active === SECTION_KEYS.liahubCompanies || isEducationManagerSection || (active === SECTION_KEYS.myStudents && isEducationManager)) && (
+                        <td
+                          className="px-5 py-4 text-right"
+                          data-no-detail-on-click
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <RowActions
                             onView={() => {
-                              setDetailRow(row)
+                              setDetailRow(rowWithSectionKey)
                               setDetailOpen(true)
                             }}
+                            onAssign={
+                              active === SECTION_KEYS.myStudents && isEducationManager
+                                ? () => handleAssignMyStudent(rowWithSectionKey)
+                                : undefined
+                            }
                             onEdit={(e) => {
                               e.stopPropagation()
                               handleEditClick(row)
@@ -1334,6 +1590,8 @@ export default function DataTable() {
                             }}
                             onMoveToCompanies={active === SECTION_KEYS.liahubCompanies ? () => handleMoveToCompanies(row) : undefined}
                             showMoveToCompanies={active === SECTION_KEYS.liahubCompanies}
+                            showAssign={active === SECTION_KEYS.myStudents && isEducationManager}
+                            assignDisabled={Boolean(rowWithSectionKey.internshipAssigned)}
                             disabled={mutationPending}
                             isAdminOnly={active === SECTION_KEYS.liahubCompanies}
                             isAdmin={isSchoolAdmin}
@@ -1381,7 +1639,7 @@ export default function DataTable() {
         onChange={handleFieldChange}
         onSubmit={handleSubmit}
         onCancel={resetEditorState}
-        definition={definition}
+        definition={editorDefinition}
         submitting={mutationPending}
         error={mutationError}
       />
@@ -1407,7 +1665,7 @@ export default function DataTable() {
         definition={definition}
       />
 
-      {deleteSuccess && active === SECTION_KEYS.students && (
+      {deleteSuccess && (active === SECTION_KEYS.students || active === SECTION_KEYS.myStudents) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
           <StatusCard
             title="Student deleted"
@@ -1647,7 +1905,7 @@ function Toolbar({
   )
 }
 
-function RowActions({ onView, onEdit, onDelete, onMoveToCompanies, disabled, isAdminOnly = false, isAdmin = false, allowEdit = true, allowDelete = true, showMoveToCompanies = false, moving = false }) {
+function RowActions({ onView, onAssign, showAssign = false, assignDisabled = false, onEdit, onDelete, onMoveToCompanies, disabled, isAdminOnly = false, isAdmin = false, allowEdit = true, allowDelete = true, showMoveToCompanies = false, moving = false }) {
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const shouldDisableActions = isAdminOnly && !isAdmin
 
@@ -1693,6 +1951,25 @@ function RowActions({ onView, onEdit, onDelete, onMoveToCompanies, disabled, isA
         >
           <Edit className="h-4 w-4" />
         </Button>
+        {showAssign ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={disabled || shouldDisableActions || moving || assignDisabled || !onAssign}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (assignDisabled || !onAssign) return
+              onAssign()
+            }}
+            title={assignDisabled ? 'Already assigned' : 'Assign student'}
+            className={`h-8 w-8 p-0 rounded-full shadow-[2px_2px_5px_rgba(0,0,0,0.1),-2px_-2px_5px_rgba(255,255,255,0.05)] hover:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.1),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] transition-all ${
+              assignDisabled ? 'text-slate-500' : 'text-emerald-500 hover:text-emerald-600'
+            }`}
+          >
+            <UserPlus className="h-4 w-4" />
+          </Button>
+        ) : null}
         {showMoveToCompanies && onMoveToCompanies && (
           <Button
             type="button"
@@ -2064,7 +2341,10 @@ function RecordEditorDialog({
                         value={values[field.key] ?? ''}
                         onChange={(event) => onChange(field.key, event.target.value)}
                         required={field.required}
-                        readOnly={definition?.recordType === 'student' && ['companyEmail','phone','orgNumber','contactPerson','location','role'].includes(field.key)}
+                        readOnly={
+                          (definition?.recordType === 'student' && ['companyEmail','phone','orgNumber','contactPerson','location','role'].includes(field.key)) ||
+                          (definition?.recordType === 'my_student' && ['programme', 'educationLeader'].includes(field.key))
+                        }
                         placeholder={field.placeholder || undefined}
                         pattern={field.pattern || undefined}
                         title={field.title || undefined}
@@ -2120,7 +2400,7 @@ function ExcelUploadDialog({ open, onClose, onFileChange, uploading, result, fil
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="w-full max-w-3xl mx-auto">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogClose onClick={onClose} />
@@ -2232,7 +2512,7 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="w-full max-w-3xl mx-auto p-0 space-y-0 bg-transparent shadow-none">
         <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold text-white flex items-center gap-2">

@@ -9,6 +9,8 @@ const schoolRecordSchema = new Schema(
       type: String,
       enum: [
         "student",
+        "all_student",
+        "my_student",
         "teacher",
         "lead_company",
         "company",

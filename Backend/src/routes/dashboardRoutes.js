@@ -80,6 +80,20 @@ router.post(
 );
 
 router.post(
+  "/school/upload-my-students-excel",
+  authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
+  uploadExcel.single("excelFile"),
+  dashboardController.uploadMyStudentsExcel
+);
+
+router.post(
+  "/school/upload-all-students-excel",
+  authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
+  uploadExcel.single("excelFile"),
+  dashboardController.uploadAllStudentsExcel
+);
+
+router.post(
   "/school/upload-companies-excel",
   authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
   uploadExcel.single("excelFile"),

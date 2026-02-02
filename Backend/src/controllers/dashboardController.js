@@ -19,6 +19,8 @@ const ROLES = require("../constants/roles");
 // --- Helper constants and functions ---
 const RECORD_TYPE_TO_SECTION_KEY = {
   student: "students",
+  all_student: "allStudents",
+  my_student: "myStudents",
   teacher: "teachers",
   education_manager: "educationManagers",
   admin: "adminManagement",
@@ -99,7 +101,9 @@ const rowMatchesProgramme = (row, programmes = []) => {
 };
 
 const defaultTablesShape = () => ({
+  allStudents: [],
   students: [],
+  myStudents: [],
   teachers: [],
   educationManagers: [],
   adminManagement: [],
@@ -669,6 +673,78 @@ const sanitizeDataPayload = (type, data = {}, existing = {}) => {
     return sanitizeStudentData(incoming, previous);
   }
 
+  if (type === 'all_student') {
+    // "All Students" is a separate master list; keep student fields but strip placement/assignment fields.
+    const merged = sanitizeStudentData(incoming, previous);
+    delete merged.placement;
+    delete merged.company;
+    delete merged.location;
+    delete merged.liaType;
+    delete merged.lia_type;
+    delete merged.contactPerson;
+    delete merged.role;
+    delete merged.companyEmail;
+    delete merged.phone;
+    delete merged.orgNumber;
+    delete merged.org_number;
+    delete merged.assignmentStatus;
+    delete merged.assignmentAssignedAt;
+    delete merged.companyNotified;
+    delete merged.companyNotificationAt;
+    delete merged.companyNotificationMethod;
+    delete merged.assignedCompanyId;
+    delete merged.assignedCompanyName;
+    delete merged.assignedByUserId;
+    delete merged.assignedByName;
+    delete merged.companyDecisionAt;
+    delete merged.companyDecisionBy;
+    delete merged.companyDecisionName;
+    delete merged.companyDecisionReason;
+    delete merged.verified;
+    delete merged.verifiedAt;
+    return merged;
+  }
+
+  if (type === 'my_student') {
+    // Use the student sanitizer but strip assignment-only fields so "My Students" stays a pre-assignment list.
+    const merged = sanitizeStudentData(incoming, previous);
+    // Also strip company/placement fields. My Students should capture student info only.
+    delete merged.placement;
+    delete merged.company;
+    delete merged.location;
+    delete merged.liaType;
+    delete merged.lia_type;
+    delete merged.contactPerson;
+    delete merged.role;
+    delete merged.companyEmail;
+    delete merged.phone;
+    delete merged.orgNumber;
+    delete merged.org_number;
+    delete merged.assignmentStatus;
+    delete merged.assignmentAssignedAt;
+    delete merged.companyNotified;
+    delete merged.companyNotificationAt;
+    delete merged.companyNotificationMethod;
+    delete merged.assignedCompanyId;
+    delete merged.assignedCompanyName;
+    delete merged.assignedByUserId;
+    delete merged.assignedByName;
+    delete merged.companyDecisionAt;
+    delete merged.companyDecisionBy;
+    delete merged.companyDecisionName;
+    delete merged.companyDecisionReason;
+    delete merged.verified;
+    delete merged.verifiedAt;
+    // Keep any extra "my student" marker fields
+    if (incoming.internshipAssigned !== undefined) {
+      merged.internshipAssigned = toTrimmedString(incoming.internshipAssigned);
+    }
+    if (incoming.assignedStudentId !== undefined) {
+      merged.assignedStudentId = toTrimmedString(incoming.assignedStudentId);
+    }
+    return merged;
+  }
+
   if (type === 'liahub_company') {
     return sanitizeLiahubCompanyData(incoming, previous);
   }
@@ -762,6 +838,7 @@ const mapRecordToRow = (record) => {
         placement: data.placement || data.company || '',
         cohort: normalizeCohortDate(data.cohort || data.date || ''),
         location: data.location || '',
+        liaType: data.liaType || data.lia_type || '',
         contactPerson: data.contactPerson || '',
         role: data.role || '',
         companyEmail: data.companyEmail || '',
@@ -785,6 +862,44 @@ const mapRecordToRow = (record) => {
         companyDecisionReason: data.companyDecisionReason || '',
         verified: (toTrimmedString(data.verified).toLowerCase() === 'true') || toTrimmedString(data.assignmentStatus).toLowerCase() === ASSIGNMENT_STATUS.CONFIRMED,
         verifiedAt: data.verifiedAt || '',
+      };
+    case 'my_student':
+      return {
+        ...common,
+        name: data.name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        studentPhone: data.studentPhone || data.student_phone || '',
+        educationManagerId: data.educationManagerId || '',
+        programme: data.programme || data.program || '',
+        placement: data.placement || data.company || '',
+        cohort: normalizeCohortDate(data.cohort || data.date || ''),
+        location: data.location || '',
+        liaType: data.liaType || data.lia_type || '',
+        contactPerson: data.contactPerson || '',
+        role: data.role || '',
+        companyEmail: data.companyEmail || '',
+        orgNumber: data.orgNumber || '',
+        notes: data.notes || data.note || '',
+        assignmentProcess: data.assignmentProcess || '',
+        educationLeader: data.educationLeader || '',
+        infoFromLeader: data.infoFromLeader || data.infoFromUL || '',
+        internshipAssigned: ['true', '1', 'yes'].includes(toTrimmedString(data.internshipAssigned).toLowerCase()),
+        assignedStudentId: data.assignedStudentId || '',
+      };
+    case 'all_student':
+      return {
+        ...common,
+        name: data.name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        studentPhone: data.studentPhone || data.student_phone || '',
+        programme: data.programme || data.program || '',
+        cohort: normalizeCohortDate(data.cohort || data.date || ''),
+        notes: data.notes || data.note || '',
+        assignmentProcess: data.assignmentProcess || '',
+        educationLeader: data.educationLeader || '',
+        infoFromLeader: data.infoFromLeader || data.infoFromUL || '',
       };
     default:
       return null;
@@ -944,12 +1059,17 @@ const getSchoolDashboard = async (req, res, next) => {
 const getStudentDashboard = async (req, res, next) => {
   try {
     const organization = req.user.organization;
+    const roles = Array.isArray(req.user?.roles) ? req.user.roles : [];
+    const currentUserId = toTrimmedString(req.user?._id || req.user?.id);
+    const isEducationManager = roles.includes('education_manager');
+    const isSchoolAdminLike = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
+
     // Admin users (platform_admin, university_admin) should see ALL records across all organizations
     const isAdmin = Array.isArray(req.user?.roles) && req.user.roles.some(role => ['platform_admin', 'university_admin'].includes(role));
     const organizationFilter = (organization && !isAdmin) ? { organization } : {};
     const recordQuery = {
       ...organizationFilter,
-      type: { $in: ['student', 'teacher', 'education_manager', 'admin', 'company', 'lead_company', 'liahub_company'] },
+      type: { $in: ['student', 'all_student', 'my_student', 'teacher', 'education_manager', 'admin', 'company', 'lead_company', 'liahub_company'] },
     };
 
     const [activePlacements, messageCount, recentNotifications, tableRecords, companies, staffUsers] = await Promise.all([
@@ -963,19 +1083,27 @@ const getStudentDashboard = async (req, res, next) => {
 
     let effectiveRecords = tableRecords;
     if (!effectiveRecords || !effectiveRecords.length) {
-      effectiveRecords = await SchoolRecord.find({ type: { $in: ['student', 'teacher', 'education_manager', 'admin', 'company', 'lead_company', 'liahub_company'] } }).sort({ createdAt: -1 }).lean();
+      effectiveRecords = await SchoolRecord.find({ type: { $in: ['student', 'all_student', 'my_student', 'teacher', 'education_manager', 'admin', 'company', 'lead_company', 'liahub_company'] } }).sort({ createdAt: -1 }).lean();
+    }
+
+    // Education managers should ONLY see My Students they created/own.
+    if (isEducationManager && !isSchoolAdminLike && currentUserId) {
+      effectiveRecords = (effectiveRecords || []).filter((record) => {
+        if (!record || record.type !== 'my_student') return true;
+        const data = toDataObject(record.data || {});
+        return toTrimmedString(data.educationManagerId) === currentUserId;
+      });
     }
 
     const tables = buildTablesResponse(effectiveRecords);
 
-    const isEducationManager = Array.isArray(req.user?.roles) && req.user.roles.includes('education_manager');
-    const currentUserId2 = (req.user && (req.user._id || req.user.id)) || null;
-    const educationManagerProgrammes = isEducationManager ? await getUserProgrammes(currentUserId2) : [];
+    const educationManagerProgrammes = isEducationManager ? await getUserProgrammes(currentUserId) : [];
 
     if (isEducationManager) {
       if (Array.isArray(tables.students)) {
         tables.students = tables.students.filter((row) => rowMatchesProgramme(row, educationManagerProgrammes));
       }
+      // My Students are already filtered by owner above.
       if (Array.isArray(tables.liahubCompanies)) {
         tables.liahubCompanies = tables.liahubCompanies.filter((row) => rowMatchesProgramme(row, educationManagerProgrammes));
       }
@@ -1039,14 +1167,25 @@ const getStudentDashboard = async (req, res, next) => {
     );
 
     // Enrich students in tables
-    if (Array.isArray(tables.students) && tables.students.length) {
-      tables.students = tables.students.map((s) => {
+    const enrichStudentsWithCompanyData = (students = []) =>
+      (students || []).map((s) => {
         const placement = s.placement;
         if (!placement) return s;
         const companyData = companyDataMap.get(String(placement).trim().toLowerCase());
         if (!companyData) return s;
-        return { ...s, location: companyData.location || s.location, contactPerson: companyData.contactPerson || s.contactPerson, role: companyData.role || s.role, companyEmail: companyData.companyEmail || s.companyEmail, phone: companyData.phone || s.phone, orgNumber: companyData.orgNumber || s.orgNumber };
+        return {
+          ...s,
+          location: companyData.location || s.location,
+          contactPerson: companyData.contactPerson || s.contactPerson,
+          role: companyData.role || s.role,
+          companyEmail: companyData.companyEmail || s.companyEmail,
+          phone: companyData.phone || s.phone,
+          orgNumber: companyData.orgNumber || s.orgNumber,
+        };
       });
+
+    if (Array.isArray(tables.students) && tables.students.length) {
+      tables.students = enrichStudentsWithCompanyData(tables.students);
     }
 
     // Enrich staff users
@@ -1378,6 +1517,49 @@ const createSchoolRecord = async (req, res, next) => {
       }
     }
 
+    if (type === 'my_student') {
+      if (!isEducationManager && !isAdmin) {
+        return res.status(403).json({ message: 'Only education managers can manage My Students' });
+      }
+
+      const getLeaderName = (u) => {
+        if (!u) return '';
+        const rawName = u.name;
+        if (rawName && typeof rawName === 'object') {
+          const composed = [rawName.first, rawName.last].filter(Boolean).join(' ');
+          if (composed) return composed;
+        }
+        if (typeof rawName === 'string' && rawName.trim()) return rawName.trim();
+        return toTrimmedString(u.fullName || u.username || '');
+      };
+
+      let userForStamping = req.user;
+      if ((!req.user?.staffProfile || !getLeaderName(req.user)) && userId) {
+        const dbUser = await User.findById(userId).select('name username fullName staffProfile').lean();
+        if (dbUser) userForStamping = { ...req.user, ...dbUser };
+      }
+
+      const staffProfile = userForStamping?.staffProfile || {};
+      const programmeFromUser = toTrimmedString(
+        staffProfile.programme ||
+          staffProfile.program ||
+          (Array.isArray(staffProfile.programmes) ? staffProfile.programmes[0] : '')
+      );
+
+      const leaderName = getLeaderName(userForStamping);
+
+      if (programmeFromUser) {
+        sanitizedData.programme = programmeFromUser;
+        sanitizedData.program = programmeFromUser;
+      }
+      if (leaderName) {
+        sanitizedData.educationLeader = leaderName;
+      }
+      if (userId) {
+        sanitizedData.educationManagerId = userId;
+      }
+    }
+
     if (type === 'student') {
       const programme = String(sanitizedData.programme || sanitizedData.program || '').trim();
       const hasLeader = String(sanitizedData.educationLeader || '').trim();
@@ -1457,6 +1639,10 @@ const updateSchoolRecord = async (req, res, next) => {
     const organization = req.user.organization;
     if (!organization) return res.status(400).json({ message: 'Organization context missing' });
 
+    const roles = Array.isArray(req.user?.roles) ? req.user.roles : [];
+    const userId = toTrimmedString(req.user?._id || req.user?.id);
+    const isEducationManager = roles.includes('education_manager');
+
     const { id } = req.params;
     const { status, data, type: incomingType } = req.body || {};
 
@@ -1533,6 +1719,13 @@ const updateSchoolRecord = async (req, res, next) => {
       return res.status(403).json({ message: 'Only school administrators can manage LiaHub companies' });
     }
 
+    if (existing.type === 'my_student' && isEducationManager && !isSchoolAdmin) {
+      const currentOwnerId = toTrimmedString(mapToPlainObject(existing.data).educationManagerId);
+      if (!currentOwnerId || currentOwnerId !== userId) {
+        return res.status(403).json({ message: 'You can only edit your own My Students records' });
+      }
+    }
+
     existing.status = sanitizeStatus(status || existing.status);
     const sanitizedData = sanitizeDataPayload(existing.type, data || {}, existing.data);
   existing.set('data', sanitizedData);
@@ -1595,6 +1788,14 @@ const deleteSchoolRecord = async (req, res, next) => {
       const isAdmin = Array.isArray(req.user.roles) && req.user.roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
       if (!isAdmin) {
         return res.status(403).json({ message: 'Only admins can delete education managers' });
+      }
+    }
+
+    // My Students: only the owning education manager can delete (admins can delete all).
+    if (recordWithoutOrgFilter && recordWithoutOrgFilter.type === 'my_student' && isEducationManager && !isAdmin) {
+      const currentOwnerId = toTrimmedString(mapToPlainObject(recordWithoutOrgFilter.data).educationManagerId);
+      if (!currentOwnerId || currentOwnerId !== toTrimmedString(userId)) {
+        return res.status(403).json({ message: 'You can only delete your own My Students records' });
       }
     }
     
@@ -2100,6 +2301,314 @@ const uploadStudentsExcel = async (req, res, next) => {
   }
 };
 
+// Accept both Swedish and English headers for "My Students" uploads.
+const MY_STUDENTS_EXCEL_MAP = {
+  Date: 'date',
+  Datum: 'date',
+  Företag: 'company',
+  Company: 'company',
+  'Ort/land': 'location',
+  'Ort/Land': 'location',
+  'City/Country': 'location',
+  'LIA type': 'liaType',
+  'LIA Type': 'liaType',
+  'LIA typ': 'liaType',
+  Kontaktperson: 'contactPerson',
+  'Contact person': 'contactPerson',
+  Roll: 'role',
+  Role: 'role',
+  Mejl: 'email',
+  Email: 'email',
+  Telefon: 'phone',
+  Phone: 'phone',
+  'Ftg org/reg nr': 'orgNumber',
+  'Company org/reg no.': 'orgNumber',
+  Notera: 'notes',
+  Note: 'notes',
+  'Tilldela/urvalsprocess': 'assignmentProcess',
+  'Award/selection process': 'assignmentProcess',
+  'NBI/Handelsakadmin program': 'programme',
+  'NBI/Handelsakademin program': 'programme',
+  UL: 'educationLeader',
+  'Education leader': 'educationLeader',
+  'Studerande Namn': 'name',
+  "Student's name": 'name',
+  'Studerande mejladress (skola)': 'email',
+  "Student's email (school)": 'email',
+  "Student's phone": 'studentPhone',
+  'Studerande telefon': 'studentPhone',
+  'Info från UL': 'infoFromLeader',
+  'Info from UL': 'infoFromLeader',
+};
+
+const uploadMyStudentsExcel = async (req, res, next) => {
+  try {
+    const organization = req.user.organization;
+    if (!organization) return res.status(400).json({ message: 'Organization context missing' });
+    if (!req.file) return res.status(400).json({ message: 'No Excel file uploaded' });
+
+    const roles = Array.isArray(req.user.roles) ? req.user.roles : [];
+    const isAdmin = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
+    const isEducationManager = roles.includes('education_manager');
+    if (!isEducationManager && !isAdmin) {
+      return res.status(403).json({ message: 'Only education managers can upload My Students' });
+    }
+
+    const getLeaderName = (u) => {
+      if (!u) return '';
+      const rawName = u.name;
+      if (rawName && typeof rawName === 'object') {
+        const composed = [rawName.first, rawName.last].filter(Boolean).join(' ');
+        if (composed) return composed;
+      }
+      if (typeof rawName === 'string' && rawName.trim()) return rawName.trim();
+      return toTrimmedString(u.fullName || u.username || '');
+    };
+
+    const userId = (req.user._id || req.user.id || '').toString();
+    let userForStamping = req.user;
+    if ((!req.user?.staffProfile || !getLeaderName(req.user)) && userId) {
+      const dbUser = await User.findById(userId).select('name username fullName staffProfile').lean();
+      if (dbUser) userForStamping = { ...req.user, ...dbUser };
+    }
+
+    const staffProfile = userForStamping?.staffProfile || {};
+    const programmeFromUser = toTrimmedString(
+      staffProfile.programme ||
+        staffProfile.program ||
+        (Array.isArray(staffProfile.programmes) ? staffProfile.programmes[0] : '')
+    );
+
+    const leaderName = getLeaderName(userForStamping);
+
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    if (!rawData || rawData.length === 0) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: 'Excel file is empty' });
+    }
+
+    const successRecords = [];
+    const failedRecords = [];
+
+    const mapRow = (row) => {
+      const mapped = {};
+      Object.keys(MY_STUDENTS_EXCEL_MAP).forEach((header) => {
+        const field = MY_STUDENTS_EXCEL_MAP[header];
+        const value = row[header];
+        if (value === undefined || value === null || String(value).trim() === '') return;
+        mapped[field] = String(value).trim();
+      });
+      return mapped;
+    };
+
+    for (let i = 0; i < rawData.length; i++) {
+      const row = rawData[i];
+      try {
+        const mapped = mapRow(row);
+
+        const studentData = {
+          name: mapped.name || '',
+          email: mapped.email || '',
+          studentPhone: mapped.studentPhone || '',
+          cohort: normalizeCohortDate(mapped.date || mapped.cohort || ''),
+          assignmentProcess: mapped.assignmentProcess || '',
+          infoFromLeader: mapped.infoFromLeader || '',
+          notes: mapped.notes || '',
+          internshipAssigned: 'false',
+          assignedStudentId: '',
+        };
+
+        // Always stamp programme + education leader from the logged-in education manager.
+        if (programmeFromUser) {
+          studentData.programme = programmeFromUser;
+          studentData.program = programmeFromUser;
+        }
+        if (leaderName) {
+          studentData.educationLeader = leaderName;
+        }
+        if (userId) {
+          studentData.educationManagerId = userId;
+        }
+
+        if (!studentData.name && !studentData.email) {
+          failedRecords.push({ rowNumber: i + 2, name: studentData.name || 'Unknown', email: studentData.email || 'Unknown', error: 'Missing name and email' });
+          continue;
+        }
+
+        let isDuplicate = false;
+        if (studentData.email) {
+          const existingByEmail = await SchoolRecord.findOne({ organization, type: 'my_student', 'data.email': studentData.email, 'data.educationManagerId': userId }).lean();
+          if (existingByEmail) isDuplicate = true;
+        }
+
+        if (!isDuplicate && studentData.name) {
+          const existingByName = await SchoolRecord.findOne({ organization, type: 'my_student', 'data.name': studentData.name, 'data.educationManagerId': userId }).lean();
+          if (existingByName) isDuplicate = true;
+        }
+
+        if (isDuplicate) {
+          failedRecords.push({ rowNumber: i + 2, name: studentData.name || 'Unknown', email: studentData.email || 'Unknown', error: 'Duplicate record' });
+          continue;
+        }
+
+        const sanitized = sanitizeDataPayload('my_student', studentData);
+        if (programmeFromUser) {
+          sanitized.programme = programmeFromUser;
+          sanitized.program = programmeFromUser;
+        }
+        if (leaderName) {
+          sanitized.educationLeader = leaderName;
+        }
+        if (userId) {
+          sanitized.educationManagerId = userId;
+        }
+
+        const record = await SchoolRecord.create({ organization, type: 'my_student', status: 'Active', data: sanitized });
+        successRecords.push({ rowNumber: i + 2, name: studentData.name, email: studentData.email, id: record._id.toString() });
+      } catch (error) {
+        failedRecords.push({ rowNumber: i + 2, error: error.message || 'Failed to import row' });
+      }
+    }
+
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+    return res.json({
+      message: 'My Students upload processed',
+      successCount: successRecords.length,
+      failedCount: failedRecords.length,
+      successes: successRecords,
+      failures: failedRecords,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Accept both Swedish and English headers for "All Students" uploads.
+const ALL_STUDENTS_EXCEL_MAP = {
+  Date: 'date',
+  Datum: 'date',
+  Notera: 'notes',
+  Note: 'notes',
+  'Tilldela/urvalsprocess': 'assignmentProcess',
+  'Award/selection process': 'assignmentProcess',
+  'NBI/Handelsakadmin program': 'programme',
+  'NBI/Handelsakademin program': 'programme',
+  Program: 'programme',
+  Programme: 'programme',
+  UL: 'educationLeader',
+  'Education leader': 'educationLeader',
+  'Studerande Namn': 'name',
+  "Student's name": 'name',
+  'Studerande mejladress (skola)': 'email',
+  "Student's email (school)": 'email',
+  'Info från UL': 'infoFromLeader',
+  'Info from UL': 'infoFromLeader',
+  Telefon: 'phone',
+  Phone: 'phone',
+  Status: 'status',
+};
+
+const uploadAllStudentsExcel = async (req, res, next) => {
+  try {
+    const organization = req.user.organization;
+    if (!organization) return res.status(400).json({ message: 'Organization context missing' });
+    if (!req.file) return res.status(400).json({ message: 'No Excel file uploaded' });
+
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    if (!rawData || rawData.length === 0) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: 'Excel file is empty' });
+    }
+
+    const successRecords = [];
+    const failedRecords = [];
+
+    const mapRow = (row) => {
+      const mapped = {};
+      Object.keys(ALL_STUDENTS_EXCEL_MAP).forEach((header) => {
+        const field = ALL_STUDENTS_EXCEL_MAP[header];
+        const value = row[header];
+        if (value === undefined || value === null || String(value).trim() === '') return;
+        mapped[field] = String(value).trim();
+      });
+      return mapped;
+    };
+
+    for (let i = 0; i < rawData.length; i++) {
+      const row = rawData[i];
+      try {
+        const mapped = mapRow(row);
+
+        const studentData = {
+          name: mapped.name || '',
+          email: mapped.email || '',
+          phone: mapped.phone || '',
+          cohort: normalizeCohortDate(mapped.date || mapped.cohort || ''),
+          assignmentProcess: mapped.assignmentProcess || '',
+          programme: mapped.programme || '',
+          program: mapped.programme || '',
+          educationLeader: mapped.educationLeader || '',
+          infoFromLeader: mapped.infoFromLeader || '',
+          notes: mapped.notes || '',
+        };
+
+        if (!studentData.name && !studentData.email) {
+          failedRecords.push({ rowNumber: i + 2, name: 'Unknown', email: 'Unknown', error: 'Missing name and email' });
+          continue;
+        }
+
+        let isDuplicate = false;
+        if (studentData.email) {
+          const existingByEmail = await SchoolRecord.findOne({ organization, type: 'all_student', 'data.email': studentData.email }).lean();
+          if (existingByEmail) isDuplicate = true;
+        }
+
+        if (!isDuplicate && studentData.name) {
+          const existingByName = await SchoolRecord.findOne({ organization, type: 'all_student', 'data.name': studentData.name }).lean();
+          if (existingByName) isDuplicate = true;
+        }
+
+        if (isDuplicate) {
+          failedRecords.push({ rowNumber: i + 2, name: studentData.name || 'Unknown', email: studentData.email || 'Unknown', error: 'Duplicate record' });
+          continue;
+        }
+
+        const sanitized = sanitizeDataPayload('all_student', studentData);
+        const record = await SchoolRecord.create({ organization, type: 'all_student', status: 'Active', data: sanitized });
+        successRecords.push({ rowNumber: i + 2, name: studentData.name, email: studentData.email, id: record._id.toString() });
+      } catch (error) {
+        failedRecords.push({ rowNumber: i + 2, error: error.message || 'Failed to import row' });
+      }
+    }
+
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+    const allRecords = await SchoolRecord.find({ organization, type: 'all_student' }).sort({ createdAt: -1 }).lean();
+    const tables = buildTablesResponse(allRecords);
+
+    return res.json({
+      message: 'All Students upload processed',
+      successCount: successRecords.length,
+      failedCount: failedRecords.length,
+      successes: successRecords,
+      failures: failedRecords,
+      tables: tables.allStudents,
+    });
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    next(error);
+  }
+};
+
 const uploadLiahubCompaniesExcel = async (req, res, next) => {
   try {
     const organization = req.user.organization;
@@ -2581,6 +3090,8 @@ module.exports = {
   confirmStudentAssignment,
   rejectStudentAssignment,
   uploadStudentsExcel,
+  uploadAllStudentsExcel,
+  uploadMyStudentsExcel,
   uploadLiahubCompaniesExcel,
   uploadCompaniesExcel,
   uploadLeadCompaniesExcel,

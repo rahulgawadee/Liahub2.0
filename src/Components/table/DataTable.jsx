@@ -49,6 +49,42 @@ const STATUS_CLASSES = {
   Pending: 'bg-amber-500/15 text-amber-300',
 }
 
+const COMPANY_QUALITY_THEME = {
+  good: { label: 'Active Companies', color: '#4CAF50' },
+  future: { label: 'Hot Prospects', color: '#FF9800' },
+  // Keep passive in the same orange family; adjust if you want a different shade.
+  bad: { label: 'Passive Companies', color: '#F57C00' },
+}
+
+const hexToRgb = (hex) => {
+  const cleaned = String(hex || '').replace('#', '').trim()
+  if (cleaned.length !== 6) return null
+  const r = Number.parseInt(cleaned.slice(0, 2), 16)
+  const g = Number.parseInt(cleaned.slice(2, 4), 16)
+  const b = Number.parseInt(cleaned.slice(4, 6), 16)
+  if ([r, g, b].some((n) => Number.isNaN(n))) return null
+  return { r, g, b }
+}
+
+const rgbaFromHex = (hex, alpha) => {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return `rgba(255,255,255,${alpha})`
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`
+}
+
+const getCompanyRowTheme = (row) => {
+  const quality = String(row?.quality || '').toLowerCase()
+  const theme = COMPANY_QUALITY_THEME[quality]
+  if (!theme) return null
+  return {
+    ...theme,
+    gradient: `linear-gradient(90deg, ${rgbaFromHex(theme.color, 0.16)} 0%, ${rgbaFromHex(
+      theme.color,
+      0.06,
+    )} 35%, ${rgbaFromHex(theme.color, 0)} 70%)`,
+  }
+}
+
 const StatusPill = ({ status }) => {
   const classes = STATUS_CLASSES[status] || STATUS_CLASSES.Inactive
   return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${classes}`}>{status || 'Unknown'}</span>
@@ -91,28 +127,12 @@ const renderCellContent = (column, row, onNavigate) => {
   if (column.showAvatar && column.linkToProfile) {
     const userId = row.id || row.userId || row._id
     const imageUrl = row.avatarUrl || row.profileImage || row.avatar
-    const quality = row.quality || ''
-    const isCompanyColumn = column.key === 'business' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)
     
     const handleClick = (e) => {
       e.stopPropagation()
       if (userId && onNavigate) {
         onNavigate(`/profile/${userId}`)
       }
-    }
-    
-    // For company business column, show quality dot
-    if (isCompanyColumn && quality) {
-      return (
-        <div className="flex items-center gap-2 min-w-0">
-          <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
-          <span
-            className={`w-3 h-3 rounded-full flex-shrink-0 ${quality === 'good' ? 'bg-emerald-500' : quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
-            title={quality === 'good' ? 'Good company' : quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
-            style={{ boxShadow: quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
-          />
-        </div>
-      )
     }
     
     return <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
@@ -187,7 +207,6 @@ const renderCellContent = (column, row, onNavigate) => {
   // Show verification badge for company business name if verified
   if (column.key === 'business' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)) {
     const verified = row.verified || row.contractSigned
-    const quality = row.quality || ''
     
     if (column.showAvatar && column.linkToProfile) {
       const userId = row.id || row.userId || row._id
@@ -201,13 +220,6 @@ const renderCellContent = (column, row, onNavigate) => {
       return (
         <div className="flex items-center gap-2 min-w-0">
           <AvatarCell value={primaryValue} imageUrl={imageUrl} userId={userId} onClick={handleClick} />
-          {quality && (
-            <span
-              className={`w-3 h-3 rounded-full flex-shrink-0 ${quality === 'good' ? 'bg-emerald-500' : quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
-              title={quality === 'good' ? 'Good company' : quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
-              style={{ boxShadow: quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
-            />
-          )}
           {verified && <VerificationBadge verified={true} size="sm" />}
         </div>
       )
@@ -216,13 +228,6 @@ const renderCellContent = (column, row, onNavigate) => {
     return (
       <div className="flex items-center gap-2 min-w-0">
         <span className="truncate">{renderValue(primaryValue)}</span>
-        {quality && (
-          <span
-            className={`w-3 h-3 rounded-full flex-shrink-0 ${quality === 'good' ? 'bg-emerald-500' : quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
-            title={quality === 'good' ? 'Good company' : quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
-            style={{ boxShadow: quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
-          />
-        )}
         {verified && <VerificationBadge verified={true} size="sm" />}
       </div>
     )
@@ -1206,7 +1211,7 @@ export default function DataTable() {
                 onClick={() => setLiahubProgrammeFilter('')}
                 className="rounded-full border px-4 py-1.5 text-xs font-medium text-white/60 border-white/20 hover:text-white hover:border-red-400/50 hover:bg-red-500/10 transition-all flex items-center gap-1.5"
               >
-                <X className="h-3 h-3" />
+                <X className="h-3 w-3" />
                 Clear
               </button>
             )}
@@ -1237,6 +1242,9 @@ export default function DataTable() {
               <table className="w-full min-w-[720px] table-auto text-sm">
                 <thead className="text-xs uppercase tracking-wider bg-[#0a0a0a] border-b border-white/10">
                   <tr className="h-14">
+                    {(active === SECTION_KEYS.companies || active === SECTION_KEYS.liahubCompanies) && (
+                      <th className="w-2 px-0" aria-hidden="true" />
+                    )}
                     {columns.map((column) => (
                       <th key={column.key} className="px-5 text-left font-bold text-white">
                         <div className="flex items-center gap-2">
@@ -1260,16 +1268,40 @@ export default function DataTable() {
                     const rowAllowsEdit = isEducationManagerSection ? (isSchoolAdmin || isSelfEducationManager) : allowEdit
                     const rowAllowsDelete = isEducationManagerSection ? isSchoolAdmin : rowAllowsEdit
                     const isMoving = movingRowId === (row.id || row._id)
+                    const showCompanyStyling = active === SECTION_KEYS.companies || active === SECTION_KEYS.liahubCompanies
+                    const companyTheme = showCompanyStyling ? getCompanyRowTheme(row) : null
                     return (
                     <tr
                       key={row.id}
                       className="h-16 transition-all hover:bg-white/5 cursor-pointer group bg-[#0a0a0a]"
+                      style={companyTheme ? { backgroundImage: companyTheme.gradient } : undefined}
                       onClick={(e) => {
                         if (e.target.closest('[data-no-detail-on-click]')) return
                         setDetailRow(row)
                         setDetailOpen(true)
                       }}
                       >
+                      {showCompanyStyling && (
+                        <td className="relative w-3 px-0 py-0 align-middle" aria-hidden="true">
+                          <div
+                            className="absolute inset-y-0 left-0 w-1"
+                            style={{
+                              backgroundColor: companyTheme?.color || 'transparent',
+                            }}
+                          />
+
+                          <div
+                            className="relative h-full w-3 group cursor-help"
+                            title={companyTheme?.label || 'Company status'}
+                            aria-label={companyTheme?.label || 'Company status'}
+                          >
+                            <div className="absolute inset-0" />
+                            <div className="pointer-events-none absolute left-3 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/85 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                              {companyTheme?.label || 'Company status'}
+                            </div>
+                          </div>
+                        </td>
+                      )}
                       {columns.map((column) => {
                         const title = buildTitle(column, row)
                         const cellClasses = ['px-5 py-4 align-middle']
@@ -2204,12 +2236,17 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
         <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold text-white flex items-center gap-2">
-              {['company', 'lead_company', 'liahub_company'].includes(definition?.recordType) && row.quality ? (
-                <span
-                  className={`w-3 h-3 rounded-full flex-shrink-0 animate-pulse ${row.quality === 'good' ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]' : row.quality === 'future' ? 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]'}`}
-                  title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
-                />
-              ) : null}
+              {['company', 'lead_company', 'liahub_company'].includes(definition?.recordType) ? (() => {
+                const theme = getCompanyRowTheme(row)
+                if (!theme) return null
+                return (
+                  <span
+                    className="inline-block h-5 w-1 rounded-full"
+                    style={{ backgroundColor: theme.color }}
+                    title={theme.label}
+                  />
+                )
+              })() : null}
               <span>{definition?.singularLabel || 'Record'} Details</span>
             </DialogTitle>
             <DialogClose onClick={() => onOpenChange(false)} />
@@ -2235,11 +2272,19 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
                   <div className="mt-2 flex items-center gap-2">
                     {row.quality ? (
                       <>
-                        <span
-                          className={`w-3 h-3 rounded-full flex-shrink-0 animate-pulse ${row.quality === 'good' ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]' : row.quality === 'future' ? 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]'}`}
-                        />
+                        {(() => {
+                          const theme = getCompanyRowTheme(row)
+                          if (!theme) return null
+                          return (
+                            <span
+                              className="inline-block h-5 w-1 rounded-full"
+                              style={{ backgroundColor: theme.color }}
+                              title={theme.label}
+                            />
+                          )
+                        })()}
                         <span className="text-sm text-white">
-                          {row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / Potential' : 'Problematic / Bad'}
+                          {(getCompanyRowTheme(row)?.label) || 'Company'}
                         </span>
                       </>
                     ) : (

@@ -2448,7 +2448,7 @@ function ExcelUploadDialog({ open, onClose, onFileChange, uploading, result, fil
               </h4>
               <ul className="space-y-1 text-sm text-muted-foreground">
                 <li>• Upload .xlsx or .xls files only</li>
-                <li>• First row must contain Swedish column headers</li>
+                <li>• First row must contain column headers</li>
                 <li>• Maximum file size: 10MB</li>
               </ul>
             </div>

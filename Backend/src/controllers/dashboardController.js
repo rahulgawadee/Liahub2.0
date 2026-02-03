@@ -359,6 +359,7 @@ const sanitizeLiahubCompanyData = (incoming = {}, existing = {}) => {
 
   merged.location = toTrimmedString(merged.location || merged.place || merged['ort/land']);
   merged.contactPerson = toTrimmedString(merged.contactPerson || merged.kontaktperson);
+  merged.liaType = toTrimmedString(merged.liaType || merged.lia_type || merged['lia type'] || merged['LIA type'] || merged.lia);
   merged.role = toTrimmedString(merged.role || merged.roll);
   merged.contactEmail = toTrimmedString(merged.contactEmail || merged.companyEmail || merged.email || merged.mejl);
   merged.educationLeaderEmail = toTrimmedString(merged.educationLeaderEmail || merged.educationLeaderMejl || '');
@@ -373,6 +374,12 @@ const sanitizeLiahubCompanyData = (incoming = {}, existing = {}) => {
   merged.studentEmail = toTrimmedString(merged.studentEmail || merged['studerandeMejl'] || merged['studerande mejladress']);
   merged.infoFromUL = toTrimmedString(merged.infoFromUL || merged['infoFrånUl']);
   merged.nextStep = toTrimmedString(merged.nextStep || merged['nästaSteg']);
+
+  const studentsRaw = merged.students ?? merged.student ?? '';
+  const studentsNumber = Number(String(studentsRaw).trim());
+  if (!Number.isNaN(studentsNumber) && String(studentsRaw).trim() !== '') {
+    merged.students = studentsNumber;
+  }
 
   const ja = normalizeYesNo(merged.jaFlag || merged.ja);
   const nej = normalizeYesNo(merged.nejFlag || merged.nej);
@@ -2310,19 +2317,36 @@ const COMPANY_SWEDISH_TO_FIELD_MAP = {
   'Info från UL': 'infoFromLeader',
 };
 
-const LIAHUB_SWEDISH_TO_FIELD_MAP = {
+// LiaHub Companies upload: accept both English and Swedish headers.
+const LIAHUB_COMPANIES_EXCEL_MAP = {
+  // English (UI-requested)
+  Date: 'date',
+  Company: 'business',
+  'LIA type': 'liaType',
+  'NBI/Handelsakadmin program': 'program',
+  'City/Country': 'location',
+  'Contact Person': 'contactPerson',
+  Role: 'role',
+  Email: 'contactEmail',
+  Phone: 'phone',
+  'Company Org/Reg No': 'orgNumber',
+  Students: 'students',
+  Status: 'status',
+  Notera: 'notes',
+
+  // Swedish / legacy
   Datum: 'date',
   Företag: 'business',
   'Ort/Land': 'location',
+  'Ort/land': 'location',
   Kontaktperson: 'contactPerson',
   Roll: 'role',
   Mejl: 'contactEmail',
   Telefon: 'phone',
   'Ftg org/reg nr': 'orgNumber',
-  Notering: 'note',
+  Notering: 'notes',
   'Nästa steg / PRIO': 'nextStepPriority',
   'Tilldela/urvalsprocess': 'assignmentProcess',
-  'NBI/Handelsakadmin program': 'program',
   UL: 'educationLeader',
   Mejl_1: 'educationLeaderEmail',
   'Mejl__1': 'educationLeaderEmail',
@@ -2807,12 +2831,49 @@ const uploadLiahubCompaniesExcel = async (req, res, next) => {
       const row = rawData[i];
       try {
         const mappedData = {};
-        Object.keys(LIAHUB_SWEDISH_TO_FIELD_MAP).forEach((swedishKey) => {
-          if (!(swedishKey in row)) return;
-          const englishKey = LIAHUB_SWEDISH_TO_FIELD_MAP[swedishKey];
-          const value = row[swedishKey];
-          mappedData[englishKey] = value ? String(value).trim() : '';
+        Object.keys(LIAHUB_COMPANIES_EXCEL_MAP).forEach((header) => {
+          if (!(header in row)) return;
+          const field = LIAHUB_COMPANIES_EXCEL_MAP[header];
+          const value = row[header];
+          mappedData[field] = value === undefined || value === null ? '' : String(value).trim();
         });
+
+        const statusRaw = toTrimmedString(mappedData.status);
+        delete mappedData.status;
+
+        const normalizeStatus = (value) => toTrimmedString(value).toLowerCase();
+        const normalizedStatus = normalizeStatus(statusRaw);
+
+        let recordStatus = 'Active';
+        if (['active', 'inactive', 'pending'].includes(normalizedStatus)) {
+          recordStatus = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+        }
+
+        let quality = '';
+        if (normalizedStatus) {
+          if (
+            normalizedStatus === 'good' ||
+            normalizedStatus.includes('active companies') ||
+            normalizedStatus.includes('active company') ||
+            normalizedStatus === 'green'
+          ) {
+            quality = 'good';
+          } else if (
+            normalizedStatus === 'future' ||
+            normalizedStatus.includes('hot prospects') ||
+            normalizedStatus.includes('hot prospect') ||
+            normalizedStatus === 'yellow'
+          ) {
+            quality = 'future';
+          } else if (
+            normalizedStatus === 'bad' ||
+            normalizedStatus.includes('passive companies') ||
+            normalizedStatus.includes('passive company') ||
+            normalizedStatus === 'orange'
+          ) {
+            quality = 'bad';
+          }
+        }
 
         // If duplicate "Mejl" column exists without suffix, map the value to education leader email if not set
         if (row['Mejl'] && !mappedData.educationLeaderEmail && mappedData.contactEmail && row['Mejl'] !== mappedData.contactEmail) {
@@ -2838,14 +2899,19 @@ const uploadLiahubCompaniesExcel = async (req, res, next) => {
         const record = await SchoolRecord.create({
           organization,
           type: 'liahub_company',
-          status: 'Active',
+          status: recordStatus,
+          quality,
           data: sanitized,
         });
 
         dedupeSet.add(dedupeKey);
         successRecords.push({ rowNumber: i + 2, business: sanitized.business, id: record._id.toString() });
       } catch (error) {
-        failedRecords.push({ rowNumber: i + 2, business: row['Företag'] || 'Unknown', error: error.message });
+        failedRecords.push({
+          rowNumber: i + 2,
+          business: row['Company'] || row['Företag'] || 'Unknown',
+          error: error.message,
+        });
       }
     }
 

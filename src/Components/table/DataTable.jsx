@@ -456,6 +456,7 @@ export default function DataTable() {
   const [pendingProgrammeAction, setPendingProgrammeAction] = React.useState(null) // 'add' | 'upload' | 'deleteAll'
   const [selectedProgramme, setSelectedProgramme] = React.useState('')
   const [liahubProgrammeFilter, setLiahubProgrammeFilter] = React.useState('')
+  const [companiesProgrammeFilter, setCompaniesProgrammeFilter] = React.useState('')
 
   // Lazy render guard for table rows
   const tableRef = React.useRef(null)
@@ -497,6 +498,7 @@ export default function DataTable() {
     setPendingProgrammeAction(null)
     setSelectedProgramme('')
     setLiahubProgrammeFilter('')
+    setCompaniesProgrammeFilter('')
   }, [active])
 
   React.useEffect(() => {
@@ -579,6 +581,22 @@ export default function DataTable() {
     return chips
   }, [active, isSchoolAdmin, isEducationManager, rows])
 
+  const companiesProgrammeChips = React.useMemo(() => {
+    if (active !== SECTION_KEYS.companies) return []
+    const seen = new Set()
+    const chips = []
+    rows.forEach((row) => {
+      const label = String(row.programme || row.program || '').trim()
+      if (!label) return
+      const value = label.toLowerCase()
+      if (seen.has(value)) return
+      seen.add(value)
+      chips.push({ label, value })
+    })
+    chips.sort((a, b) => a.label.localeCompare(b.label))
+    return chips
+  }, [active, rows])
+
   const [visibleRowsLimit, setVisibleRowsLimit] = React.useState(50)
 
   // Extract unique programme values from students data for filter
@@ -610,6 +628,11 @@ export default function DataTable() {
       working = working.filter((row) => String(row.program || '').trim().toLowerCase() === target)
     }
 
+    if (active === SECTION_KEYS.companies && companiesProgrammeFilter) {
+      const target = companiesProgrammeFilter.toLowerCase()
+      working = working.filter((row) => String(row.programme || row.program || '').trim().toLowerCase() === target)
+    }
+
     const term = search.trim().toLowerCase()
     if (term) {
       working = working.filter((row) =>
@@ -635,7 +658,7 @@ export default function DataTable() {
     }
 
     return working
-  }, [rows, columns, search, active, liahubProgrammeFilter, programmeFilter])
+  }, [rows, columns, search, active, liahubProgrammeFilter, companiesProgrammeFilter, programmeFilter])
 
   const visibleRows = tableVisible ? filteredRows.slice(0, visibleRowsLimit) : []
 
@@ -1459,6 +1482,44 @@ export default function DataTable() {
           filterDropdownOpen={filterDropdownOpen}
           onFilterDropdownToggle={setFilterDropdownOpen}
         />
+
+        {active === SECTION_KEYS.companies && companiesProgrammeChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0a0a0a] rounded-xl border border-white/10">
+            <span className="text-sm font-semibold text-white/80 flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Filter by programme:
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {companiesProgrammeChips.map((chip) => {
+                const selected = companiesProgrammeFilter === chip.value
+                return (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => setCompaniesProgrammeFilter((prev) => (prev === chip.value ? '' : chip.value))}
+                    className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
+                      selected
+                        ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
+                        : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                )
+              })}
+              {companiesProgrammeFilter && (
+                <button
+                  type="button"
+                  onClick={() => setCompaniesProgrammeFilter('')}
+                  className="rounded-full border px-4 py-1.5 text-xs font-medium text-white/60 border-white/20 hover:text-white hover:border-red-400/50 hover:bg-red-500/10 transition-all flex items-center gap-1.5"
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {(isSchoolAdmin || isEducationManager) && active === SECTION_KEYS.liahubCompanies && liahubProgrammeChips.length > 0 && (
           <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0a0a0a] rounded-xl border border-white/10">

@@ -569,6 +569,12 @@ export const SECTION_DEFINITIONS = {
 				type: 'select',
 				options: ['Remote', 'On-site', 'Online'],
 			},
+			{
+				key: 'programme',
+				label: 'NBI/Handelsakadmin program',
+				type: 'select',
+				options: PROGRAMME_OPTIONS,
+			},
 			{ key: 'location', label: 'City/Country', type: 'text' },
 			{ key: 'contactPerson', label: 'Contact Person', type: 'text', showAvatar: true, linkToProfile: true },
 			{ key: 'role', label: 'Role', type: 'text' },

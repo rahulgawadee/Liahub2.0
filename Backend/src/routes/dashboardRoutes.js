@@ -126,6 +126,12 @@ router.delete(
   dashboardController.deleteCompaniesByType
 );
 
+router.delete(
+  "/school/my-students",
+  authorize(PERMISSIONS.EDIT_SCHOOL_DASHBOARD),
+  dashboardController.deleteMyStudents
+);
+
 router.get(
   "/school/companies-dropdown",
   authorize(PERMISSIONS.VIEW_SCHOOL_DASHBOARD),

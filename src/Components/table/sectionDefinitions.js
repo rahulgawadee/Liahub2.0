@@ -29,7 +29,7 @@ export const formatDateYYMMDD = (value) => {
 	const raw = String(value).trim()
 	if (!raw) return ''
 
-	const alreadyFormatted = raw.match(/^(\d{2})[\/-](\d{2})[\/-](\d{2})$/)
+	const alreadyFormatted = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{2})$/)
 	if (alreadyFormatted) {
 		const [, yy, mm, dd] = alreadyFormatted
 		const year = normaliseYear(Number(yy))
@@ -38,7 +38,7 @@ export const formatDateYYMMDD = (value) => {
 		}
 	}
 
-	const matchYMD = raw.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/)
+	const matchYMD = raw.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/)
 	if (matchYMD) {
 		const year = Number(matchYMD[1])
 		const month = Number(matchYMD[2])
@@ -48,7 +48,7 @@ export const formatDateYYMMDD = (value) => {
 		}
 	}
 
-	const matchDMY = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/)
+	const matchDMY = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/)
 	if (matchDMY) {
 		const day = Number(matchDMY[1])
 		const month = Number(matchDMY[2])
@@ -131,8 +131,7 @@ export const SECTION_DEFINITIONS = {
 				inputMode: 'numeric',
 				maxLength: 8,
 			},
-			{ key: 'notes', label: 'Notes', type: 'text' },
-			{ key: 'assignmentProcess', label: 'Assignment/Selection Process', type: 'text' },
+			{ key: 'location', label: 'Ort/land', type: 'text' },
 			{
 				key: 'programme',
 				label: 'NBI/Handelsakadmin program',
@@ -141,7 +140,7 @@ export const SECTION_DEFINITIONS = {
 			},
 			{
 				key: 'educationLeader',
-				label: 'Education leader',
+				label: 'UL',
 				type: 'select',
 				options: [
 					'Zuzana Polievka',
@@ -150,32 +149,29 @@ export const SECTION_DEFINITIONS = {
 					'Magdalena Fagerlind',
 				],
 			},
-			{ key: 'name', label: "Student's name", type: 'text', required: true, showAvatar: true, linkToProfile: true },
-			{ key: 'email', label: "Student's email (school)", type: 'email' },
-			{ key: 'infoFromLeader', label: 'Info from UL', type: 'text' },
-			{
-				key: 'status',
-				label: 'Status',
-				type: 'select',
-				variant: 'status',
-				defaultValue: DEFAULT_STATUS,
-				excludeFromData: true,
-				options: STATUS_OPTIONS,
-			},
+			{ key: 'personalEmail', label: 'Mejl', type: 'email' },
+			{ key: 'name', label: 'Studerande Namn', type: 'text', required: true, showAvatar: true, linkToProfile: true },
+			{ key: 'phone', label: 'Telefon', type: 'text' },
+			{ key: 'email', label: 'Studerande mejladress (skola)', type: 'email' },
+			{ key: 'notes', label: 'Notera', type: 'text' },
+			{ key: 'assignmentProcess', label: 'Tilldela/urvalsprocess', type: 'text' },
+			{ key: 'infoFromLeader', label: 'Info från UL', type: 'text' },
 		],
 		upload: {
 			title: 'Upload Student Data (Excel)',
 			endpoint: '/dashboard/school/upload-all-students-excel',
 			expectedColumns: [
 				'Date',
-				'Notera',
-				'Tilldela/urvalsprocess',
+				'Ort/land',
 				'NBI/Handelsakadmin program',
 				'UL',
+				'Mejl',
 				'Studerande Namn',
+				'Telefon',
 				'Studerande mejladress (skola)',
+				'Notera',
+				'Tilldela/urvalsprocess',
 				'Info från UL',
-				'Status',
 			],
 		},
 		addEnabled: true,
@@ -303,32 +299,26 @@ export const SECTION_DEFINITIONS = {
 				inputMode: 'numeric',
 				maxLength: 8,
 			},
-			{ key: 'notes', label: 'Notes', type: 'text' },
-			{ key: 'assignmentProcess', label: 'Assignment/Selection Process', type: 'text' },
+			{ key: 'location', label: 'Ort/land', type: 'text' },
 			{
 				key: 'programme',
-				label: 'NBI/Handelsakademin program',
+				label: 'NBI/Handelsakadmin program',
 				type: 'text',
 				helpText: 'Auto-filled from your Education Manager profile.',
 			},
 			{
 				key: 'educationLeader',
-				label: 'Education leader',
+				label: 'UL',
 				type: 'text',
 				helpText: 'Auto-filled from your account.',
 			},
-			{ key: 'name', label: "Student's name", type: 'text', required: true, showAvatar: true, linkToProfile: true },
-			{ key: 'email', label: "Student's email (school)", type: 'email' },
-			{ key: 'infoFromLeader', label: 'Info from UL', type: 'text' },
-			{
-				key: 'status',
-				label: 'Status',
-				type: 'select',
-				variant: 'status',
-				defaultValue: DEFAULT_STATUS,
-				excludeFromData: true,
-				options: STATUS_OPTIONS,
-			},
+			{ key: 'personalEmail', label: 'Mejl', type: 'email' },
+			{ key: 'name', label: 'Studerande Namn', type: 'text', required: true, showAvatar: true, linkToProfile: true },
+			{ key: 'studentPhone', label: 'Telefon', type: 'text' },
+			{ key: 'email', label: 'Studerande mejladress (skola)', type: 'email' },
+			{ key: 'notes', label: 'Notera', type: 'text' },
+			{ key: 'assignmentProcess', label: 'Tilldela/urvalsprocess', type: 'text' },
+			{ key: 'infoFromLeader', label: 'Info från UL', type: 'text' },
 		],
 		upload: {
 			title: 'Upload My Students (Excel)',

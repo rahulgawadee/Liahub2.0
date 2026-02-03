@@ -1302,6 +1302,8 @@ export default function DataTable() {
 
     const message = isLiahubCompanies
       ? `Delete all LiaHub companies for ${selectedProgramme}? This cannot be undone.`
+      : active === SECTION_KEYS.myStudents
+        ? 'Delete all My Students? This cannot be undone.'
       : active === SECTION_KEYS.companies
         ? 'Delete all Companies? This cannot be undone.'
         : 'Delete all Lead Companies? This cannot be undone.'
@@ -1312,6 +1314,8 @@ export default function DataTable() {
     try {
       if (isLiahubCompanies) {
         await apiClient.delete('/dashboard/school/liahub-companies', { params: { programme: selectedProgramme } })
+      } else if (active === SECTION_KEYS.myStudents) {
+        await apiClient.delete('/dashboard/school/my-students')
       } else {
         const type = active === SECTION_KEYS.companies ? 'company' : 'lead_company'
         await apiClient.delete('/dashboard/school/companies', { params: { type } })
@@ -1346,7 +1350,9 @@ export default function DataTable() {
   }
 
   const showUploadButton = Boolean(uploadConfig && allowAdd)
-  const showDeleteAllButton = isSchoolAdmin && (isLiahubCompanies || active === SECTION_KEYS.companies || active === SECTION_KEYS.leadingCompanies)
+  const showDeleteAllButton =
+    (active === SECTION_KEYS.myStudents && (isSchoolAdmin || isEducationManager)) ||
+    (isSchoolAdmin && (isLiahubCompanies || active === SECTION_KEYS.companies || active === SECTION_KEYS.leadingCompanies))
 
   const getSectionIcon = (sectionKey) => {
     const iconMap = {
@@ -1445,7 +1451,7 @@ export default function DataTable() {
           onUpload={handleUploadButtonClick}
           uploadLabel={uploadConfig?.buttonLabel || 'Upload Excel'}
           showDeleteAllButton={showDeleteAllButton}
-          onDeleteAll={() => openProgrammeDialog('deleteAll')}
+          onDeleteAll={active === SECTION_KEYS.myStudents ? handleDeleteAllBySection : () => openProgrammeDialog('deleteAll')}
           showProgrammeFilter={active === SECTION_KEYS.students || active === SECTION_KEYS.myStudents || active === SECTION_KEYS.allStudents}
           availableProgrammes={availableProgrammes}
           programmeFilter={programmeFilter}

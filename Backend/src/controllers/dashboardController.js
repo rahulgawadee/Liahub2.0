@@ -876,6 +876,7 @@ const mapRecordToRow = (record) => {
         ...common,
         name: data.name || '',
         email: data.email || '',
+        personalEmail: data.personalEmail || '',
         phone: data.phone || '',
         studentPhone: data.studentPhone || data.student_phone || '',
         educationManagerId: data.educationManagerId || '',
@@ -900,10 +901,12 @@ const mapRecordToRow = (record) => {
         ...common,
         name: data.name || '',
         email: data.email || '',
+        personalEmail: data.personalEmail || '',
         phone: data.phone || '',
         studentPhone: data.studentPhone || data.student_phone || '',
         programme: data.programme || data.program || '',
         cohort: normalizeCohortDate(data.cohort || data.date || ''),
+        location: data.location || '',
         notes: data.notes || data.note || '',
         assignmentProcess: data.assignmentProcess || '',
         educationLeader: data.educationLeader || '',
@@ -2488,7 +2491,7 @@ const MY_STUDENTS_EXCEL_MAP = {
   'Contact person': 'contactPerson',
   Roll: 'role',
   Role: 'role',
-  Mejl: 'email',
+  Mejl: 'personalEmail',
   Email: 'email',
   Telefon: 'phone',
   Phone: 'phone',
@@ -2583,7 +2586,8 @@ const uploadMyStudentsExcel = async (req, res, next) => {
 
         const studentData = {
           name: mapped.name || '',
-          email: mapped.email || '',
+          email: mapped.email || mapped.personalEmail || '',
+          personalEmail: mapped.personalEmail || '',
           studentPhone: mapped.studentPhone || mapped.phone || '',
           location: mapped.location || '',
           cohort: normalizeCohortDate(mapped.date || mapped.cohort || ''),
@@ -2664,6 +2668,8 @@ const uploadMyStudentsExcel = async (req, res, next) => {
 const ALL_STUDENTS_EXCEL_MAP = {
   Date: 'date',
   Datum: 'date',
+  'Ort/land': 'location',
+  'Ort/Land': 'location',
   Notera: 'notes',
   Note: 'notes',
   'Tilldela/urvalsprocess': 'assignmentProcess',
@@ -2674,6 +2680,7 @@ const ALL_STUDENTS_EXCEL_MAP = {
   Programme: 'programme',
   UL: 'educationLeader',
   'Education leader': 'educationLeader',
+  Mejl: 'personalEmail',
   'Studerande Namn': 'name',
   "Student's name": 'name',
   'Studerande mejladress (skola)': 'email',
@@ -2722,8 +2729,10 @@ const uploadAllStudentsExcel = async (req, res, next) => {
 
         const studentData = {
           name: mapped.name || '',
-          email: mapped.email || '',
+          email: mapped.email || mapped.personalEmail || '',
+          personalEmail: mapped.personalEmail || '',
           phone: mapped.phone || '',
+          location: mapped.location || '',
           cohort: normalizeCohortDate(mapped.date || mapped.cohort || ''),
           assignmentProcess: mapped.assignmentProcess || '',
           programme: mapped.programme || '',
@@ -3078,6 +3087,44 @@ const deleteCompaniesByType = async (req, res, next) => {
   }
 };
 
+const deleteMyStudents = async (req, res, next) => {
+  try {
+    const organization = req.user.organization;
+    if (!organization) return res.status(400).json({ message: 'Organization context missing' });
+
+    const roles = Array.isArray(req.user.roles) ? req.user.roles : [];
+    const isAdmin = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
+    const isEducationManager = roles.includes('education_manager');
+
+    if (!isAdmin && !isEducationManager) {
+      return res.status(403).json({ message: 'Only education managers can delete My Students' });
+    }
+
+    const userId = (req.user._id || req.user.id || '').toString();
+    const requestedManagerId = toTrimmedString(req.query?.educationManagerId || req.body?.educationManagerId);
+    const educationManagerId = isEducationManager ? userId : requestedManagerId;
+
+    const filter = {
+      organization,
+      type: 'my_student',
+    };
+
+    if (educationManagerId) {
+      filter['data.educationManagerId'] = educationManagerId;
+    }
+
+    const result = await SchoolRecord.deleteMany(filter);
+
+    return res.json({
+      message: 'My Students deleted',
+      deleted: result.deletedCount || 0,
+      scope: educationManagerId ? 'education_manager' : 'all',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get LIA Essentials for the user's organization
 const getLiaEssentials = async (req, res, next) => {
   try {
@@ -3320,6 +3367,7 @@ module.exports = {
   uploadCompaniesExcel,
   uploadLeadCompaniesExcel,
   deleteCompaniesByType,
+  deleteMyStudents,
   deleteLiahubCompaniesByProgramme,
   getCompaniesForDropdown,
 };

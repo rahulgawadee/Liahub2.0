@@ -913,6 +913,7 @@ export default function DataTable() {
         const companyData = {
           business: row.business,
           liaType: row.liaType || '',
+          programme: row.programme || row.program || '',
           location: row.location,
           contactPerson: row.contactPerson,
           role: row.role,
@@ -922,6 +923,8 @@ export default function DataTable() {
           students: row.students || 0,
           date: row.date || '',
           notes: row.notes || row.note || '',
+          educationLeader: row.educationLeader || '',
+          assignmentProcess: row.assignmentProcess || '',
         }
         
         // Add to companies table
@@ -929,7 +932,7 @@ export default function DataTable() {
           sectionKey: SECTION_KEYS.companies, 
           payload: {
             type: 'company',
-            status: 'active',
+            status: row.status || 'active',
             data: companyData
           }
         })).unwrap()

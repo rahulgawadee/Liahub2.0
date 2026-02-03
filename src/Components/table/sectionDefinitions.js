@@ -391,7 +391,7 @@ export const SECTION_DEFINITIONS = {
 		cardTitleKey: 'business',
 		cardSubtitleKey: 'contactPerson',
 		cardSections: [
-			{ key: 'company', label: 'Company', keys: ['date', 'business', 'liaType', 'location'] },
+			{ key: 'company', label: 'Company', keys: ['date', 'business', 'liaType', 'program', 'location'] },
 			{ key: 'contact', label: 'Contact', keys: ['contactPerson', 'contactEmail', 'phone'] },
 			{ key: 'students', label: 'Students', keys: ['students'] },
 			{ key: 'notes', label: 'Notera', keys: ['notes'] },
@@ -417,6 +417,13 @@ export const SECTION_DEFINITIONS = {
 				type: 'select',
 				options: ['Remote', 'On-site', 'Online'],
 			},
+			{
+				key: 'program',
+				label: 'NBI/Handelsakadmin program',
+				type: 'select',
+				options: PROGRAMME_OPTIONS,
+				required: true,
+			},
 			{ key: 'location', label: 'City/Country', type: 'text' },
 			{ key: 'contactPerson', label: 'Contact Person', type: 'text', showAvatar: true, linkToProfile: true },
 			{ key: 'role', label: 'Role', type: 'text' },
@@ -438,7 +445,6 @@ export const SECTION_DEFINITIONS = {
 		upload: {
 			title: 'Upload LiaHub Companies (Excel)',
 			endpoint: '/dashboard/school/upload-liahub-companies-excel',
-			adminOnly: true,
 			note: 'Flexible columns accepted. Recommended headers: Datum, Företag, Ort/land, Kontaktperson, Roll, Mejl, Telefon, Ftg org/reg nr.',
 			expectedColumns: [
 				'Date',
@@ -585,7 +591,6 @@ export const SECTION_DEFINITIONS = {
 		upload: {
 			title: 'Upload Companies (Excel)',
 			endpoint: '/dashboard/school/upload-companies-excel',
-			adminOnly: true,
 			note: 'Flexible columns accepted. Recommended headers: Datum, Företag, Ort/land, Kontaktperson, Roll, Mejl, Telefon, Ftg org/reg nr.',
 			expectedColumns: [
 				'Date',
@@ -657,7 +662,6 @@ export const SECTION_DEFINITIONS = {
 		upload: {
 			title: 'Upload Lead Companies (Excel)',
 			endpoint: '/dashboard/school/upload-lead-companies-excel',
-			adminOnly: true,
 			expectedColumns: [],
 		},
 		addEnabled: true,
@@ -734,7 +738,8 @@ export const canEditSection = (entity, sectionKey, roles = []) => {
 	if (normalizedEntity && READ_ONLY_ENTITIES.has(normalizedEntity)) return false
 	if (sectionKey === SECTION_KEYS.liahubCompanies) {
 		const isAdmin = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(normalizeRole(role)))
-		if (!isAdmin) return false
+		const isEducationManager = roles.some((role) => normalizeRole(role) === 'education_manager')
+		if (!isAdmin && !isEducationManager) return false
 	}
 	const hasRoleAccess = roles?.some((role) => EDIT_ROLES.has(normalizeRole(role)))
 	if (hasRoleAccess) return true
@@ -747,22 +752,6 @@ export const canEditSection = (entity, sectionKey, roles = []) => {
 
 export const canAddToSection = (entity, sectionKey, roles = []) => {
 	if (!canEditSection(entity, sectionKey, roles)) return false
-
-	// Education managers should not be able to add/upload in admin + company management sections.
-	// Admins should retain access.
-	const isAdmin = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(normalizeRole(role)))
-	const isEducationManager = roles.some((role) => normalizeRole(role) === 'education_manager')
-	const adminOnlyAddSections = new Set([
-		SECTION_KEYS.adminManagement,
-		SECTION_KEYS.companies,
-		SECTION_KEYS.liahubCompanies,
-		SECTION_KEYS.leadingCompanies,
-	])
-	if (adminOnlyAddSections.has(sectionKey) && isEducationManager && !isAdmin) return false
-
-	if (sectionKey === SECTION_KEYS.liahubCompanies) {
-		if (!isAdmin) return false
-	}
 	const definition = SECTION_DEFINITIONS[sectionKey]
 	return definition?.addEnabled ?? false
 }

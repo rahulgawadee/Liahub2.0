@@ -1,4 +1,5 @@
 const fs = require('fs');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const JobPosting = require("../models/JobPosting");
 const JobApplication = require("../models/JobApplication");
@@ -1478,10 +1479,120 @@ const createSchoolRecord = async (req, res, next) => {
 
     const sanitizedData = sanitizeDataPayload(type, data);
 
+    // Admin Management rows are backed by User documents (not SchoolRecord).
+    // Creating an "admin" from the dashboard should create a real login account.
+    if (type === 'admin') {
+      if (!isAdmin) {
+        return res.status(403).json({ message: 'Only admins can create admin accounts' });
+      }
+
+      const leaderRaw = toTrimmedString(sanitizedData.leader || sanitizedData.name);
+      const emailRaw = toTrimmedString(sanitizedData.contact || sanitizedData.email);
+      const phoneRaw = toTrimmedString(sanitizedData.phone);
+      const placeRaw = toTrimmedString(sanitizedData.place || sanitizedData.location);
+      const studentsHandled = parseStudents(sanitizedData.students);
+
+      if (!leaderRaw) return res.status(400).json({ message: 'Admin name is required' });
+      if (!emailRaw) return res.status(400).json({ message: 'Admin email is required' });
+
+      const email = emailRaw.toLowerCase();
+      const emailInUse = await User.exists({ email });
+      if (emailInUse) {
+        return res.status(409).json({ message: 'Email already registered' });
+      }
+
+      const org = await Organization.findById(organization).select('type name').lean();
+      const orgType = String(org?.type || '').toLowerCase();
+      const adminRole = orgType === 'university' ? ROLES.UNIVERSITY_ADMIN : ROLES.SCHOOL_ADMIN;
+
+      const splitName = (full) => {
+        const parts = String(full || '').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return { first: '', last: '' };
+        const [first, ...rest] = parts;
+        return { first, last: rest.join(' ') };
+      };
+
+      const normalizeUsernameBase = (value) =>
+        String(value || '')
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9._-]/g, '')
+          .replace(/^[._-]+/, '')
+          .replace(/[._-]+$/, '')
+          .slice(0, 24);
+
+      const emailLocalPart = email.includes('@') ? email.split('@')[0] : email;
+      const leaderSlug = leaderRaw.replace(/\s+/g, '').toLowerCase();
+      const baseCandidate = normalizeUsernameBase(emailLocalPart) || normalizeUsernameBase(leaderSlug) || 'admin';
+
+      let username = baseCandidate;
+      let counter = 1;
+      // eslint-disable-next-line no-await-in-loop
+      while (await User.exists({ username })) {
+        username = `${baseCandidate}${counter}`;
+        counter += 1;
+      }
+
+      const temporaryPassword = crypto.randomBytes(12).toString('hex');
+      const name = splitName(leaderRaw);
+
+      const user = await User.create({
+        username,
+        email,
+        password: temporaryPassword,
+        roles: [adminRole],
+        status: 'active',
+        organization,
+        name,
+        contact: {
+          email,
+          phone: phoneRaw || undefined,
+          location: placeRaw || undefined,
+        },
+        staffProfile: {
+          studentsHandled,
+        },
+      });
+
+      // Send credentials email (non-blocking)
+      try {
+        const workspaceLabel = orgType === 'university' ? 'University' : 'School';
+        const roleLabel = 'Admin';
+        await sendEmail({
+          to: email,
+          subject: `Welcome to LiaHub - ${workspaceLabel} ${roleLabel} account created`,
+          text: `Your ${workspaceLabel} ${roleLabel} account has been created.\n\nLogin Instructions:\n1. Select \"${workspaceLabel}\" as your account type\n2. Select \"Admin\" as your role\n3. Login with your username or email\n\nUsername: ${username}\nEmail: ${email}\nTemporary Password: ${temporaryPassword}\n\nPlease change your password after logging in.`,
+        });
+      } catch (emailErr) {
+        logger.error('Failed to send admin welcome email:', emailErr);
+      }
+
+      const leaderName = [name.first, name.last].filter(Boolean).join(' ') || user.username || user.email || '';
+      const row = {
+        id: String(user._id),
+        leader: leaderName,
+        contact: user.contact?.email || user.email || '',
+        phone: user.contact?.phone || '',
+        place: user.contact?.location || '',
+        students: studentsHandled,
+        status: user.status || 'Active',
+        updatedAt: user.updatedAt,
+        organization: user.organization,
+        roles: Array.isArray(user.roles) ? user.roles : [],
+        primaryRole: orgType === 'university' ? 'university_admin' : 'school_admin',
+      };
+
+      return res.status(201).json({
+        sectionKey: 'adminManagement',
+        record: row,
+        temporaryPassword,
+      });
+    }
+
     const isSchoolAdmin = Array.isArray(req.user.roles) && req.user.roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
 
-    if (type === 'liahub_company' && !isSchoolAdmin) {
-      return res.status(403).json({ message: 'Only school administrators can manage LiaHub companies' });
+    if (type === 'liahub_company' && !(isSchoolAdmin || isEducationManager)) {
+      return res.status(403).json({ message: 'Only school administrators and education managers can manage LiaHub companies' });
     }
 
     if (type === 'liahub_company') {
@@ -1490,6 +1601,13 @@ const createSchoolRecord = async (req, res, next) => {
         return res.status(400).json({ message: 'Programme is required for LiaHub companies' });
       }
       sanitizedData.program = programme;
+    }
+
+    if (type === 'liahub_company' && isEducationManager && !isSchoolAdmin) {
+      const educationManagerProgrammes = await getUserProgrammes(userId);
+      if (!rowMatchesProgramme({ program: sanitizedData.program }, educationManagerProgrammes)) {
+        return res.status(403).json({ message: 'You can only manage LiaHub companies for your programme' });
+      }
     }
 
     if (type === 'liahub_company') {
@@ -1715,8 +1833,15 @@ const updateSchoolRecord = async (req, res, next) => {
     if (!existing) return res.status(404).json({ message: 'Record not found' });
 
     const isSchoolAdmin = Array.isArray(req.user.roles) && req.user.roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
-    if (existing.type === 'liahub_company' && !isSchoolAdmin) {
-      return res.status(403).json({ message: 'Only school administrators can manage LiaHub companies' });
+    if (existing.type === 'liahub_company' && !(isSchoolAdmin || isEducationManager)) {
+      return res.status(403).json({ message: 'Only school administrators and education managers can manage LiaHub companies' });
+    }
+
+    if (existing.type === 'liahub_company' && isEducationManager && !isSchoolAdmin) {
+      const educationManagerProgrammes = await getUserProgrammes(userId);
+      if (!rowMatchesProgramme(mapToPlainObject(existing.data), educationManagerProgrammes)) {
+        return res.status(403).json({ message: 'You can only manage LiaHub companies for your programme' });
+      }
     }
 
     if (existing.type === 'my_student' && isEducationManager && !isSchoolAdmin) {
@@ -1728,6 +1853,21 @@ const updateSchoolRecord = async (req, res, next) => {
 
     existing.status = sanitizeStatus(status || existing.status);
     const sanitizedData = sanitizeDataPayload(existing.type, data || {}, existing.data);
+
+    if (existing.type === 'liahub_company') {
+      const programme = sanitizedData.program || sanitizedData.programme || req.body?.programme || req.body?.program || '';
+      if (!programme) {
+        return res.status(400).json({ message: 'Programme is required for LiaHub companies' });
+      }
+      sanitizedData.program = programme;
+
+      if (isEducationManager && !isSchoolAdmin) {
+        const educationManagerProgrammes = await getUserProgrammes(userId);
+        if (!rowMatchesProgramme({ program: sanitizedData.program }, educationManagerProgrammes)) {
+          return res.status(403).json({ message: 'You can only manage LiaHub companies for your programme' });
+        }
+      }
+    }
   existing.set('data', sanitizedData);
   
   // Store quality field for company-related records
@@ -1867,8 +2007,15 @@ const deleteSchoolRecord = async (req, res, next) => {
     });
 
     const isSchoolAdmin = isAdmin;
-    if (recordWithoutOrgFilter.type === 'liahub_company' && !isSchoolAdmin) {
-      return res.status(403).json({ message: 'Only school administrators can manage LiaHub companies' });
+    if (recordWithoutOrgFilter.type === 'liahub_company' && !(isSchoolAdmin || isEducationManager)) {
+      return res.status(403).json({ message: 'Only school administrators and education managers can manage LiaHub companies' });
+    }
+
+    if (recordWithoutOrgFilter.type === 'liahub_company' && isEducationManager && !isSchoolAdmin) {
+      const educationManagerProgrammes = await getUserProgrammes(userId);
+      if (!rowMatchesProgramme(mapToPlainObject(recordWithoutOrgFilter.data), educationManagerProgrammes)) {
+        return res.status(403).json({ message: 'You can only manage LiaHub companies for your programme' });
+      }
     }
     
     // Allow assigned education manager or admins to delete student even if org missing/mismatched
@@ -2613,15 +2760,25 @@ const uploadLiahubCompaniesExcel = async (req, res, next) => {
   try {
     const organization = req.user.organization;
     if (!organization) return res.status(400).json({ message: 'Organization context missing' });
-    const isSchoolAdmin = Array.isArray(req.user.roles) && req.user.roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
-    if (!isSchoolAdmin) {
-      return res.status(403).json({ message: 'Only school administrators can upload LiaHub companies' });
+    const roles = Array.isArray(req.user.roles) ? req.user.roles : [];
+    const isSchoolAdmin = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
+    const isEducationManager = roles.includes('education_manager');
+    const userId = (req.user._id || req.user.id || '').toString();
+    if (!(isSchoolAdmin || isEducationManager)) {
+      return res.status(403).json({ message: 'Only school administrators and education managers can upload LiaHub companies' });
     }
     if (!req.file) return res.status(400).json({ message: 'No Excel file uploaded' });
 
     const forcedProgramme = req.body?.programme || req.body?.program || '';
     if (!forcedProgramme) {
       return res.status(400).json({ message: 'Programme is required for LiaHub companies upload' });
+    }
+
+    if (isEducationManager && !isSchoolAdmin) {
+      const educationManagerProgrammes = await getUserProgrammes(userId);
+      if (!rowMatchesProgramme({ program: forcedProgramme }, educationManagerProgrammes)) {
+        return res.status(403).json({ message: 'You can only upload LiaHub companies for your programme' });
+      }
     }
 
     const workbook = XLSX.readFile(req.file.path);

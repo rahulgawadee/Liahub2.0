@@ -54,10 +54,10 @@ function Row({ row, dispatch }){
 						<div className="flex items-center gap-2">
 							<Input value={local.business} onChange={e=>onChange('business',e.target.value)} />
 							<select value={local.quality||''} onChange={e=>onChange('quality',e.target.value)} className="px-2 py-1 border rounded text-sm bg-background">
-								<option value="">Quality</option>
-								<option value="good">Good (Green)</option>
-								<option value="future">Future (Orange)</option>
-								<option value="bad">Bad (Red)</option>
+								<option value="">Status</option>
+								<option value="good">Active companies (Green)</option>
+								<option value="future">Hot prospects (Yellow)</option>
+								<option value="bad">Passive companies (Orange)</option>
 							</select>
 						</div>
 					</Td>
@@ -80,9 +80,9 @@ function Row({ row, dispatch }){
 							<span className="truncate">{row.business}</span>
 							{row.quality ? (
 								<span
-									className={`w-3 h-3 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
-									title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
-									style={{ boxShadow: row.quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : row.quality === 'future' ? '0 0 8px rgba(245,158,11,0.6)' : '0 0 8px rgba(239,68,68,0.6)' }}
+									className={`w-3 h-3 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-yellow-400' : 'bg-orange-500'}`}
+									title={row.quality === 'good' ? 'Active companies' : row.quality === 'future' ? 'Hot prospects' : 'Passive companies'}
+									style={{ boxShadow: row.quality === 'good' ? '0 0 8px rgba(16,185,129,0.6)' : row.quality === 'future' ? '0 0 8px rgba(250,204,21,0.6)' : '0 0 8px rgba(249,115,22,0.6)' }}
 								/>
 							) : null}
 						</div>
@@ -123,10 +123,10 @@ function LeadingCompanyCard({ row, dispatch }){
 						<div className="flex items-center gap-2">
 							<CardInput value={local.business} onChange={e=>onChange('business',e.target.value)} />
 							<select value={local.quality||''} onChange={e=>onChange('quality',e.target.value)} className="px-2 py-1 border rounded text-sm bg-transparent">
-								<option value="">Quality</option>
-								<option value="good">Good (Green)</option>
-								<option value="future">Future (Orange)</option>
-								<option value="bad">Bad (Red)</option>
+								<option value="">Status</option>
+								<option value="good">Active companies (Green)</option>
+								<option value="future">Hot prospects (Yellow)</option>
+								<option value="bad">Passive companies (Orange)</option>
 							</select>
 						</div>
 					) : (
@@ -134,8 +134,8 @@ function LeadingCompanyCard({ row, dispatch }){
 							<div className="flex items-center gap-2">
 								{row.quality ? (
 									<span
-										className={`w-2 h-2 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-amber-500' : 'bg-red-500'}`}
-										title={row.quality === 'good' ? 'Good company' : row.quality === 'future' ? 'Future / potential' : 'Problematic / bad company'}
+										className={`w-2 h-2 rounded-full flex-shrink-0 ${row.quality === 'good' ? 'bg-emerald-500' : row.quality === 'future' ? 'bg-yellow-400' : 'bg-orange-500'}`}
+										title={row.quality === 'good' ? 'Active companies' : row.quality === 'future' ? 'Hot prospects' : 'Passive companies'}
 									/>
 								) : (
 									<span className="w-2 h-2 rounded-full flex-shrink-0 bg-transparent" />

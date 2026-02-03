@@ -51,7 +51,7 @@ const STATUS_CLASSES = {
 
 const COMPANY_QUALITY_THEME = {
   good: { label: 'Active Companies', color: '#4CAF50' },
-  future: { label: 'Hot Prospects', color: '#FF9800' },
+  future: { label: 'Hot Prospects', color: '#FBBF24' },
   // Keep passive in the same orange family; adjust if you want a different shade.
   bad: { label: 'Passive Companies', color: '#F57C00' },
 }
@@ -564,7 +564,7 @@ export default function DataTable() {
   }, [sectionState?.data, columns, active, entity, normalizedCompanyName, userOrganizationId])
 
   const liahubProgrammeChips = React.useMemo(() => {
-    if (!isSchoolAdmin || active !== SECTION_KEYS.liahubCompanies) return []
+    if (!(isSchoolAdmin || isEducationManager) || active !== SECTION_KEYS.liahubCompanies) return []
     const seen = new Set()
     const chips = []
     rows.forEach((row) => {
@@ -577,7 +577,7 @@ export default function DataTable() {
     })
     chips.sort((a, b) => a.label.localeCompare(b.label))
     return chips
-  }, [active, isSchoolAdmin, rows])
+  }, [active, isSchoolAdmin, isEducationManager, rows])
 
   const [visibleRowsLimit, setVisibleRowsLimit] = React.useState(50)
 
@@ -843,12 +843,26 @@ export default function DataTable() {
           await apiClient.put(`/users/${deleteId}`, { roles: nextRoles })
           // Remove locally without calling failing delete endpoint
           dispatch(removeRecordLocally({ sectionKey: SECTION_KEYS.educationManagers, id: deleteId }))
+        } else if (active === SECTION_KEYS.adminManagement) {
+          // Admin rows are users; remove admin roles to revoke access + hide from dashboard.
+          let roles = Array.isArray(row.roles) ? row.roles.slice() : null
+          if (!roles) {
+            try {
+              const resp = await apiClient.get(`/users/${deleteId}`)
+              roles = Array.isArray(resp?.data?.roles) ? resp.data.roles.slice() : []
+            } catch (e) {
+              roles = []
+            }
+          }
+          const nextRoles = roles.filter((r) => r !== 'school_admin' && r !== 'university_admin')
+          await apiClient.put(`/users/${deleteId}`, { roles: nextRoles })
+          dispatch(removeRecordLocally({ sectionKey: SECTION_KEYS.adminManagement, id: deleteId }))
         } else {
           await dispatch(deleteSchoolRecord({ sectionKey: active, id: deleteId })).unwrap()
         }
 
         // Ensure list refresh immediately after delete so UI is consistent.
-        dispatch(fetchStudentDashboard())
+        dispatch(fetchStudentDashboard(true))
 
         if (active === SECTION_KEYS.students || active === SECTION_KEYS.myStudents) {
           const studentName = row.name || row.studentName || 'Student'
@@ -930,6 +944,25 @@ export default function DataTable() {
       if (editorMode === 'add') {
         hasPendingSubmissionRef.current = true
         shouldRefreshRef.current = true
+
+        // Admin Management creates real user accounts; unwrap so we can show credentials.
+        if (editorSectionKeySafe === SECTION_KEYS.adminManagement) {
+          try {
+            const created = await dispatch(createSchoolRecord({ sectionKey: editorSectionKeySafe, payload })).unwrap()
+            resetEditorState()
+            if (created?.temporaryPassword) {
+              const email = formValues.contact || ''
+              alert(
+                `Admin account created.\n\nLogin email: ${email}\nTemporary password: ${created.temporaryPassword}\n\n(An email was also attempted. If email fails, share this password manually.)`,
+              )
+            }
+            dispatch(fetchStudentDashboard(true))
+          } catch (err) {
+            console.error('Failed to create admin account:', err)
+            hasPendingSubmissionRef.current = false
+          }
+          return
+        }
         
         // Check if adding a company to trigger contract creation
         const isCompanySection = editorSectionKeySafe === SECTION_KEYS.companies || editorSectionKeySafe === SECTION_KEYS.leadCompanies
@@ -1069,7 +1102,7 @@ export default function DataTable() {
     }
 
     shouldRefreshRef.current = false
-    dispatch(fetchStudentDashboard())
+    dispatch(fetchStudentDashboard(true))
   }, [dispatch, editorSectionState?.mutationStatus, mutationError])
 
   const formFields = React.useMemo(() => {
@@ -1244,7 +1277,7 @@ export default function DataTable() {
   }, [dispatch, uploadConfig, active, selectedProgramme])
 
   const handleUploadButtonClick = React.useCallback(() => {
-    if (uploadConfig?.adminOnly && !isSchoolAdmin) {
+    if (uploadConfig?.adminOnly && !(isSchoolAdmin || isEducationManager)) {
       setAdminWarningOpen(true)
       return
     }
@@ -1421,7 +1454,7 @@ export default function DataTable() {
           onFilterDropdownToggle={setFilterDropdownOpen}
         />
 
-        {isSchoolAdmin && active === SECTION_KEYS.liahubCompanies && liahubProgrammeChips.length > 0 && (
+        {(isSchoolAdmin || isEducationManager) && active === SECTION_KEYS.liahubCompanies && liahubProgrammeChips.length > 0 && (
           <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0a0a0a] rounded-xl border border-white/10">
             <span className="text-sm font-semibold text-white/80 flex items-center gap-2">
               <Filter className="h-4 w-4" />
@@ -1594,7 +1627,7 @@ export default function DataTable() {
                             assignDisabled={Boolean(rowWithSectionKey.internshipAssigned)}
                             disabled={mutationPending}
                             isAdminOnly={active === SECTION_KEYS.liahubCompanies}
-                            isAdmin={isSchoolAdmin}
+                            isAdmin={isSchoolAdmin || isEducationManager}
                             allowEdit={rowAllowsEdit}
                             allowDelete={rowAllowsDelete}
                             moving={isMoving}
@@ -2360,18 +2393,18 @@ function RecordEditorDialog({
               })}
             </div>
 
-            {/* Company quality tag for company-like records */}
+            {/* Company status tag for company-like records */}
             {['company','lead_company','liahub_company'].includes(definition?.recordType) && (
               <div className="mt-2">
                 <div className="flex flex-col gap-2">
-                  <Label>Company quality</Label>
+                  <Label>Company status</Label>
                   <Select value={values.quality || ''} onChange={(e) => onChange('quality', e.target.value)}>
                     <SelectOption value="">None</SelectOption>
-                    <SelectOption value="good">Good (Green)</SelectOption>
-                    <SelectOption value="future">Future / Potential (Orange)</SelectOption>
-                    <SelectOption value="bad">Problematic / Bad (Red)</SelectOption>
+                    <SelectOption value="good">Active companies (Green)</SelectOption>
+                    <SelectOption value="future">Hot prospects (Yellow)</SelectOption>
+                    <SelectOption value="bad">Passive companies (Orange)</SelectOption>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Show a small colored dot next to the company name: green = Good, orange = Future, red = Problematic.</p>
+                  <p className="text-xs text-muted-foreground">Green = Active companies, Yellow = Hot prospects, Orange = Passive companies.</p>
                 </div>
               </div>
             )}
@@ -2545,10 +2578,10 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
                   </div>
                 )
               })}
-              {/* Show quality indicator as a field for company records */}
+              {/* Show status indicator as a field for company records */}
               {['company', 'lead_company', 'liahub_company'].includes(definition?.recordType) && (
                 <div className="rounded-xl bg-white/5 border border-white/10 p-4 shadow-sm">
-                  <div className="text-xs font-medium text-white/60 uppercase tracking-wide">Company Quality</div>
+                  <div className="text-xs font-medium text-white/60 uppercase tracking-wide">Company Status</div>
                   <div className="mt-2 flex items-center gap-2">
                     {row.quality ? (
                       <>

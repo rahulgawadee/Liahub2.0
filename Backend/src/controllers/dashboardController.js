@@ -1075,8 +1075,8 @@ const getStudentDashboard = async (req, res, next) => {
     const isEducationManager = roles.includes('education_manager');
     const isSchoolAdminLike = roles.some((role) => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
 
-    // Admin users (platform_admin, university_admin) should see ALL records across all organizations
-    const isAdmin = Array.isArray(req.user?.roles) && req.user.roles.some(role => ['platform_admin', 'university_admin'].includes(role));
+    // Admin users should see ALL records across all organizations (requested: "All Admins" incl. school_admin)
+    const isAdmin = Array.isArray(req.user?.roles) && req.user.roles.some(role => ['school_admin', 'platform_admin', 'university_admin'].includes(role));
     const organizationFilter = (organization && !isAdmin) ? { organization } : {};
     const recordQuery = {
       ...organizationFilter,

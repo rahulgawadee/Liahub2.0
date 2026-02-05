@@ -48,6 +48,7 @@ import apiClient from '@/lib/apiClient'
 import { getImageUrl } from '@/lib/imageUtils'
 import { toast } from 'sonner'
 import LiaApplicationModal from '@/Components/lia/LiaApplicationModal'
+import { useTheme } from '@/hooks/useTheme'
 
 const formatTimeAgo = (date) => {
   const now = new Date()
@@ -206,7 +207,7 @@ const getOfferLetterDownloadUrl = (offerLetter) => {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 const BACKEND_BASE_URL = API_BASE_URL.replace('/api/v1', '')
 
-const LIACard = ({ lia, onView, onToggleWishlist, onQuickApply, isSelected }) => {
+const LIACard = ({ lia, onView, onToggleWishlist, onQuickApply, isSelected, isDark }) => {
   const isDeadlinePassed = lia.deadline && new Date(lia.deadline) < new Date()
   const isHiringStopped = lia.status === 'hiring_stopped' || lia.status === 'closed'
   
@@ -220,9 +221,11 @@ const LIACard = ({ lia, onView, onToggleWishlist, onQuickApply, isSelected }) =>
 
   return (
     <div 
-      className={`bg-card rounded-xl p-6 transition-all cursor-pointer border-2 ${
+      className={`rounded-xl p-6 transition-all cursor-pointer border-2 ${
+        isDark ? 'bg-[#0a0a0a]' : 'bg-white'
+      } ${
         isSelected 
-          ? 'ring-2 ring-purple-600 bg-purple-50 dark:bg-purple-950/30 border-purple-600 shadow-lg' 
+          ? `ring-2 ring-purple-600 border-purple-600 shadow-lg ${isDark ? 'bg-purple-950/30' : 'bg-purple-50'}` 
           : 'hover:shadow-lg border-transparent'
       }`}
       onClick={() => onView(lia)}
@@ -242,14 +245,14 @@ const LIACard = ({ lia, onView, onToggleWishlist, onQuickApply, isSelected }) =>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-bold text-lg truncate">{lia.title}</h3>
-              <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400">
+              <h3 className={`font-bold text-lg truncate ${isDark ? 'text-white' : 'text-black'}`}>{lia.title}</h3>
+              <Badge variant="secondary" className={`text-xs ${isDark ? 'bg-purple-950 text-purple-400' : 'bg-purple-100 text-purple-700'}`}>
                 <GraduationCap className="h-3 w-3 mr-1" />
                 LIA
               </Badge>
             </div>
-            <p className="text-muted-foreground text-sm mb-2">{organizationName}</p>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <p className={`text-sm mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{organizationName}</p>
+            <div className={`flex flex-wrap items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               <span className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
                 {lia.location}
@@ -275,7 +278,7 @@ const LIACard = ({ lia, onView, onToggleWishlist, onQuickApply, isSelected }) =>
             onToggleWishlist(lia)
           }}
           className={`p-2 rounded-full hover:bg-muted transition-colors ${
-            lia.wishlisted ? 'text-yellow-500' : 'text-muted-foreground'
+            lia.wishlisted ? 'text-yellow-500' : (isDark ? 'text-gray-400' : 'text-gray-600')
           }`}
         >
           <Bookmark className="h-5 w-5" fill={lia.wishlisted ? 'currentColor' : 'none'} />
@@ -359,7 +362,7 @@ const LIACard = ({ lia, onView, onToggleWishlist, onQuickApply, isSelected }) =>
   )
 }
 
-const ApplicationCard = ({ application, onClick }) => {
+const ApplicationCard = ({ application, onClick, isDark }) => {
   const lia = application.lia
   const hasOffer = application.offerLetter && application.offerLetter.sentOn
   const offerPending = hasOffer && !application.offerLetter?.acceptedOn
@@ -374,7 +377,7 @@ const ApplicationCard = ({ application, onClick }) => {
 
   return (
     <div 
-      className="bg-card border rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer relative"
+      className={`border rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer relative ${isDark ? 'bg-[#0a0a0a] border-gray-800' : 'bg-white border-gray-200'}`}
       onClick={() => onClick(application)}
     >
       {offerPending && (
@@ -400,14 +403,14 @@ const ApplicationCard = ({ application, onClick }) => {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-lg truncate">{lia?.title}</h3>
-            <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400">
+            <h3 className={`font-bold text-lg truncate ${isDark ? 'text-white' : 'text-black'}`}>{lia?.title}</h3>
+            <Badge variant="secondary" className={`text-xs ${isDark ? 'bg-purple-950 text-purple-400' : 'bg-purple-100 text-purple-700'}`}>
               <GraduationCap className="h-3 w-3 mr-1" />
               LIA
             </Badge>
           </div>
-          <p className="text-muted-foreground text-sm mb-2">{organizationName}</p>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <p className={`text-sm mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{organizationName}</p>
+          <div className={`flex flex-wrap items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             <span className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               {lia?.location}
@@ -456,7 +459,7 @@ const ApplicationCard = ({ application, onClick }) => {
   )
 }
 
-const ApplicationDetails = ({ application, onClose, onAcceptOffer }) => {
+const ApplicationDetails = ({ application, onClose, onAcceptOffer, isDark }) => {
   const lia = application.lia
   const [accepting, setAccepting] = useState(false)
 
@@ -485,10 +488,10 @@ const ApplicationDetails = ({ application, onClose, onAcceptOffer }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="w-full max-w-3xl bg-card rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-card border-b px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-2xl font-bold">Application Details</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-2xl">
+      <div className={`w-full max-w-3xl rounded-xl shadow-xl max-h-[90vh] overflow-y-auto ${isDark ? 'bg-[#0a0a0a]' : 'bg-white'}`}>
+        <div className={`sticky top-0 border-b px-6 py-4 flex items-center justify-between z-10 ${isDark ? 'bg-[#0a0a0a] border-gray-800' : 'bg-white border-gray-200'}`}>
+          <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-black'}`}>Application Details</h2>
+          <button onClick={onClose} className={`text-2xl ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
             ×
           </button>
         </div>
@@ -509,14 +512,14 @@ const ApplicationDetails = ({ application, onClose, onAcceptOffer }) => {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold text-xl">{lia?.title}</h3>
-                <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400">
+                <h3 className={`font-bold text-xl ${isDark ? 'text-white' : 'text-black'}`}>{lia?.title}</h3>
+                <Badge variant="secondary" className={`${isDark ? 'bg-purple-950 text-purple-400' : 'bg-purple-100 text-purple-700'}`}>
                   <GraduationCap className="h-4 w-4 mr-1" />
                   LIA
                 </Badge>
               </div>
-              <p className="text-muted-foreground mb-2">{organizationName}</p>
-              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+              <p className={`mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{organizationName}</p>
+              <div className={`flex flex-wrap gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 <span className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
                   {lia?.location}
@@ -679,6 +682,7 @@ const LIADetails = ({
   inlineView = false,
   onAcceptOffer,
   onDownloadOffer,
+  isDark,
 }) => {
   const isDeadlinePassed = lia.deadline && new Date(lia.deadline) < new Date()
   const isHiringStopped = lia.status === 'hiring_stopped' || lia.status === 'closed'
@@ -700,20 +704,20 @@ const LIADetails = ({
     return (
       <div className="space-y-6">
         {/* Header with Close */}
-        <div className="flex items-start justify-between pb-4 border-b sticky top-0 bg-card z-10">
+        <div className={`flex items-start justify-between pb-4 border-b sticky top-0 z-10 ${isDark ? 'bg-[#0a0a0a] border-gray-800' : 'bg-white border-gray-200'}`}>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-2xl font-bold">{lia.title}</h2>
-              <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400">
+              <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-black'}`}>{lia.title}</h2>
+              <Badge variant="secondary" className={`${isDark ? 'bg-purple-950 text-purple-400' : 'bg-purple-100 text-purple-700'}`}>
                 <GraduationCap className="h-4 w-4 mr-1" />
                 LIA
               </Badge>
             </div>
-            <p className="text-muted-foreground">{organizationName}</p>
+            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{organizationName}</p>
           </div>
           <button 
             onClick={onClose} 
-            className="text-muted-foreground hover:text-foreground p-2 hover:bg-muted rounded-full transition-colors"
+            className={`p-2 rounded-full transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-100'}`}
           >
             <XCircle className="h-6 w-6" />
           </button>
@@ -1311,6 +1315,7 @@ const LIADetails = ({
 
 export default function StudentLIAs() {
   const dispatch = useDispatch()
+  const { isDark } = useTheme()
   const { accessToken } = useSelector(selectAuth)
   const navigate = useNavigate()
   
@@ -1676,11 +1681,11 @@ export default function StudentLIAs() {
       <div className="flex flex-1 min-h-0">
         <AppSidebar />
         <SidebarInset className="flex-1 overflow-auto">
-          <div className="max-w-7xl mx-auto p-6 space-y-6">
+          <div className={`max-w-7xl mx-auto p-6 space-y-6 ${isDark ? 'text-white' : 'text-black'}`}>
               {/* Header with View Mode Tabs */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h1 className="text-3xl font-bold flex items-center gap-2">
+                  <h1 className={`text-3xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-black'}`}>
                     <GraduationCap className="h-8 w-8 text-purple-500" />
                     LIA Opportunities
                   </h1>
@@ -1889,6 +1894,7 @@ export default function StudentLIAs() {
                           key={application.id || application._id}
                           application={application}
                           onClick={(app) => setSelectedApplication(app)}
+                          isDark={isDark}
                         />
                       ))
                   ) : (
@@ -1901,6 +1907,7 @@ export default function StudentLIAs() {
                         onToggleWishlist={handleToggleWishlist}
                         onQuickApply={handleQuickApply}
                         isSelected={selectedLIA && (selectedLIA.id || selectedLIA._id) === (lia.id || lia._id)}
+                        isDark={isDark}
                       />
                     ))
                   )}
@@ -1917,6 +1924,7 @@ export default function StudentLIAs() {
                       onAcceptOffer={handleAcceptOffer}
                       onDownloadOffer={downloadOfferLetter}
                       inlineView={true}
+                      isDark={isDark}
                     />
                   </div>
                 )}
@@ -1945,6 +1953,7 @@ export default function StudentLIAs() {
             dispatch(fetchMyLIAs())
             setSelectedApplication(null)
           }}
+          isDark={isDark}
         />
       )}
     </SidebarProvider>

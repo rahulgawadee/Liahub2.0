@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, createContext, useContext } from 'react'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/hooks/useTheme'
 
 const DropdownMenuContext = createContext()
 
@@ -33,6 +34,7 @@ export const DropdownMenuTrigger = ({ asChild = false, children, ...props }) => 
 
 export const DropdownMenuContent = ({ children, side = 'right', align = 'end', className = '', sideOffset = 4 }) => {
   const { open, setOpen } = useContext(DropdownMenuContext)
+  const { isDark } = useTheme()
   const ref = useRef(null)
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export const DropdownMenuContent = ({ children, side = 'right', align = 'end', c
   return (
     <div
       ref={ref}
-      className={cn('absolute z-50 min-w-56 rounded-lg border bg-card p-2 text-sm shadow-md', className)}
+      className={cn(`absolute z-50 min-w-56 rounded-lg border p-2 text-sm shadow-md transition-colors duration-300 ${isDark ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`, className)}
       style={{
         top: sideOffset + 32,
         right: align === 'end' ? 0 : 'auto',
@@ -63,7 +65,20 @@ export const DropdownMenuContent = ({ children, side = 'right', align = 'end', c
     </div>
   )
 }
-export const DropdownMenuLabel = (p) => <div className="px-2 py-1.5 text-xs font-medium opacity-70" {...p} />
-export const DropdownMenuSeparator = () => <div className="my-2 h-px bg-border" />
+
+export const DropdownMenuLabel = (p) => {
+  const { isDark } = useTheme()
+  return <div className={`px-2 py-1.5 text-xs font-medium transition-colors duration-300 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} {...p} />
+}
+
+export const DropdownMenuSeparator = () => {
+  const { isDark } = useTheme()
+  return <div className={`my-2 h-px transition-colors duration-300 ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`} />
+}
+
 export const DropdownMenuGroup = ({ children }) => <div className="space-y-1">{children}</div>
-export const DropdownMenuItem = ({ children, ...props }) => <button className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-accent/60" type="button" {...props}>{children}</button>
+
+export const DropdownMenuItem = ({ children, ...props }) => {
+  const { isDark } = useTheme()
+  return <button className={`w-full flex items-center gap-2 rounded px-2 py-1.5 text-left transition-colors duration-300 ${isDark ? 'text-white hover:bg-gray-900' : 'text-black hover:bg-gray-100'}`} type="button" {...props}>{children}</button>
+}

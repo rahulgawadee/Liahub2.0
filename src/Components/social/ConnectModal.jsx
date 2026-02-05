@@ -3,8 +3,10 @@ import { Button } from '@/Components/ui/button'
 import { useDispatch } from 'react-redux'
 import { sendConnectionRequest } from '@/redux/slices/connectionsSlice'
 import { pushNotification } from '@/redux/slices/notificationsSlice'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function ConnectModal({ open, onClose, employer }){
+  const { isDark } = useTheme()
   const dispatch = useDispatch()
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -72,8 +74,21 @@ export default function ConnectModal({ open, onClose, employer }){
             </div>
 
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={onClose} disabled={sending}>Cancel</Button>
-              <Button onClick={onSend} disabled={sending}>
+              <Button
+                variant="ghost"
+                onClick={onClose}
+                disabled={sending}
+                className={`${isDark ? '' : ''}`}
+                style={!isDark ? { backgroundColor: '#e5e7eb', color: '#000' } : undefined}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={onSend}
+                disabled={sending}
+                size="md"
+                style={!isDark ? { backgroundColor: '#000000', color: '#ffffff' } : undefined}
+              >
                 {sending ? 'Sending…' : 'Send'}
               </Button>
             </div>

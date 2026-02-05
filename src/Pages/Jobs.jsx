@@ -21,11 +21,13 @@ import {
 import { selectAuth } from '@/redux/store'
 import { getPrimaryEntity } from '@/lib/roles'
 import apiClient from '@/lib/apiClient'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function Jobs() {
   const dispatch = useDispatch()
   const state = useSelector(selectJobs)
   const { user } = useSelector(selectAuth)
+  const { isDark } = useTheme()
   const { mode, query, activeTab, list, selectedId } = state
 
   // State for real applications from backend
@@ -334,7 +336,7 @@ export default function Jobs() {
               onSearch={handleSearch}
             />
           ) : (
-            <div className="px-6 pt-4 text-white flex-1 min-h-0">
+            <div className={`px-6 pt-4 flex-1 min-h-0 ${isDark ? 'text-white' : 'text-black'}`}>
               <div className="flex flex-col items-center">
                 <TabsBar value={activeTab} onChange={(t) => dispatch(setActiveTab(t))} counts={tabCounts} />
               </div>

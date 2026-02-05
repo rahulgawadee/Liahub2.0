@@ -5,8 +5,9 @@ import { login, clearError } from '../redux/slices/authSlice'
 import { selectAuth } from '../redux/store'
 import { Button } from '../Components/ui/button'
 import { Label } from '../Components/ui/label'
-import { AuthShell, FormField, EntityTabs, AUTH_ENTITIES, ENTITY_KEYS } from '../Components/auth'
+import { AuthShell, FormField, EntityTabs, ForgotPasswordModal, AUTH_ENTITIES, ENTITY_KEYS } from '../Components/auth'
 import { getPrimaryEntity } from '@/lib/roles'
+import { useTheme } from '@/hooks/useTheme'
 
 const ENTITY_ROUTE_MAP = ENTITY_KEYS.reduce((acc, key) => {
   acc[key] = AUTH_ENTITIES[key].dashboardRoute
@@ -32,8 +33,10 @@ export default function Login() {
   const loginFields = entityConfig.login.fields
   const initialForm = useMemo(() => buildInitialState(loginFields), [loginFields])
   const [form, setForm] = useState(initialForm)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   const { user, loading, error, accessToken } = useSelector(selectAuth)
+  const { isDark } = useTheme()
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
@@ -74,39 +77,40 @@ export default function Login() {
   )
 
   const footer = (
-    <p className="text-sm text-gray-400">
+    <p className={`text-sm sm:text-base transition-colors duration-300 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
       Don&apos;t have an account?{' '}
-      <Button
-        variant="link"
-        className="text-primary hover:text-primary/80 p-0 h-auto font-semibold"
+      <button
+        type="button"
+        className={`font-semibold transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
         onClick={() => navigate('/register')}
       >
-        Sign Up
-      </Button>
+        Sign up
+      </button>
     </p>
   )
 
   return (
+    <>
     <AuthShell
       title={entityConfig.login.title}
       description={entityConfig.login.description}
       entityTabs={<EntityTabs active={entity} entities={tabs} onSelect={setEntity} />}
       footer={footer}
     >
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form onSubmit={onSubmit} className="space-y-5 sm:space-y-6">
         {entityConfig.login.fields.map((field) => {
           if (field.name === 'password') {
             const fieldWithoutLabel = { ...field, label: null }
             return (
-              <div key={field.name} className="grid gap-2">
+              <div key={field.name} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor={`${entity}-${field.name}`} className="text-sm font-medium text-gray-300">
+                  <Label htmlFor={`${entity}-${field.name}`} className={`text-xs sm:text-sm font-medium transition-colors duration-300 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                     {field.label}
                   </Label>
                   <button
                     type="button"
-                    className="text-xs text-primary hover:text-primary/80 underline-offset-4 hover:underline transition-colors"
-                    onClick={(e) => e.preventDefault()}
+                    className={`text-xs sm:text-sm transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+                    onClick={() => setShowForgotPassword(true)}
                   >
                     Forgot password?
                   </button>
@@ -132,38 +136,37 @@ export default function Login() {
           )
         })}
 
-        {error ? (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-            <p className="text-sm text-red-400">{error}</p>
+        {error && (
+          <div className={`p-3 sm:p-4 rounded-xl border transition-colors duration-300 ${isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200'}`}>
+            <p className={`text-xs sm:text-sm text-center transition-colors duration-300 ${isDark ? 'text-red-400' : 'text-red-600'}`}>{error}</p>
           </div>
-        ) : null}
+        )}
 
         <Button
           disabled={loading}
           type="submit"
-          className="neomorph-button w-full h-11 bg-gray-200 hover:bg-white text-black font-semibold transition-all"
+          style={{
+            backgroundColor: isDark ? 'white' : 'black',
+            color: isDark ? 'black' : 'white'
+          }}
+          className="w-full h-12 sm:h-14 font-bold text-sm sm:text-base rounded-full transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = isDark ? '#f3f4f6' : '#1f2937'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = isDark ? 'white' : 'black'
+          }}
         >
           {loading ? 'Logging in…' : 'Login'}
         </Button>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-gray-700/50" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-[#303030] px-2 text-gray-500">Or continue with</span>
-          </div>
-        </div>
-
-        <Button
-          variant="outline"
-          type="button"
-          className="neomorph-button w-full h-11 border-gray-700/50 hover:bg-accent text-gray-300"
-        >
-          Login with Google
-        </Button>
       </form>
     </AuthShell>
+    
+    <ForgotPasswordModal
+      isOpen={showForgotPassword}
+      onClose={() => setShowForgotPassword(false)}
+    />
+    </>
   )
 }
 

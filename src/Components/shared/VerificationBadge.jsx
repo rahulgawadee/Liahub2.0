@@ -1,7 +1,9 @@
 import React from 'react'
 import { CheckCircle } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function VerificationBadge({ verified = false, size = 'md', className = '' }) {
+  const { isDark } = useTheme()
   if (!verified) return null
 
   const sizeClasses = {
@@ -12,7 +14,7 @@ export default function VerificationBadge({ verified = false, size = 'md', class
 
   return (
     <div
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-medium ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full transition-colors duration-300 ${isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-100 text-green-700'} text-xs font-medium ${className}`}
       title="Verified - Contract Signed"
     >
       <CheckCircle className={sizeClasses[size]} />

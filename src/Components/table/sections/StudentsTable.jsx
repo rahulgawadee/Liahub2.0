@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { SECTION_KEYS, startEdit, cancelEdit, updateRow, deleteSchoolRecord, selectIsEditing } from '@/redux/slices/tableSlice'
 import { Button } from '@/Components/ui/button'
 import { Edit, Trash, Save, X } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme' 
 
 export default function StudentsTable({ state }){
 	const dispatch = useDispatch()
@@ -49,6 +50,7 @@ const Th = ({ children, className='' }) => <th className={`font-medium px-4 py-3
 function Row({ row, dispatch }){
 	const isEditing = useSelector(selectIsEditing(SECTION_KEYS.students, row.id))
 	const [local, setLocal] = React.useState(row)
+	const { isDark } = useTheme()
 	React.useEffect(()=>{ setLocal(row) }, [row])
 	const onChange = (k,v)=> setLocal(l=>({...l,[k]:v}))
 	const apply = ()=>{ dispatch(updateRow({ section: SECTION_KEYS.students, id: row.id, changes: local })); dispatch(cancelEdit()) }
@@ -71,8 +73,8 @@ function Row({ row, dispatch }){
 					<Td><Input value={local.status} onChange={e=>onChange('status',e.target.value)} /></Td>
 					<Td>
 						<div className="flex gap-2 justify-end">
-							<Button size="sm" onClick={apply}><Save className="w-4 h-4 mr-1" /> Save</Button>
-							<Button size="sm" variant="ghost" onClick={()=>dispatch(cancelEdit())}><X className="w-4 h-4 mr-1" /> Cancel</Button>
+							<Button size="sm" onClick={apply} style={{ backgroundColor: isDark ? undefined : 'black', color: isDark ? undefined : 'white' }}><Save className="w-4 h-4 mr-1" /> Save</Button>
+							<Button size="sm" variant="ghost" onClick={()=>dispatch(cancelEdit())} style={{ backgroundColor: isDark ? undefined : 'lightgray', color: isDark ? undefined : 'black' }}><X className="w-4 h-4 mr-1" /> Cancel</Button>
 						</div>
 					</Td>
 				</>
@@ -104,12 +106,16 @@ function Row({ row, dispatch }){
 }
 
 const Td = ({ children, className='' }) => <td className={`px-4 py-3 align-top whitespace-nowrap ${className}`}>{children}</td>
-const Input = (props)=><input {...props} className="px-2 py-1 border border-input rounded w-full text-sm bg-background focus:ring-1 focus:ring-primary" />
+const Input = (props)=>{
+	const { isDark } = useTheme()
+	return <input {...props} className={`px-2 py-1 border rounded w-full text-sm focus:ring-1 focus:ring-primary ${isDark ? 'border border-input bg-background text-white' : 'border border-gray-300 bg-white text-black'}`} />
+} 
 
 // --- Mobile Card Version ---
 function StudentCard({ row, dispatch }){
 	const [editing, setEditing] = React.useState(false)
 	const [local, setLocal] = React.useState(row)
+	const { isDark } = useTheme()
 	React.useEffect(()=>{ setLocal(row) }, [row])
 	const onChange = (k,v)=> setLocal(l=>({...l,[k]:v}))
 	const save = ()=>{ dispatch(updateRow({ section: SECTION_KEYS.students, id: row.id, changes: local })); setEditing(false) }
@@ -121,16 +127,16 @@ function StudentCard({ row, dispatch }){
 				</div>
 				<div className="flex-1 min-w-0">
 					<div className="flex flex-wrap items-center gap-2">
-						<h3 className="font-semibold text-base leading-tight mr-2">{editing ? <input value={local.studentName} onChange={e=>onChange('studentName',e.target.value)} className="border border-input px-2 py-1 rounded text-sm bg-background" /> : row.studentName}</h3>
+						<h3 className="font-semibold text-base leading-tight mr-2">{editing ? <input value={local.studentName} onChange={e=>onChange('studentName',e.target.value)} className={`border rounded px-2 py-1 text-sm ${isDark ? 'border border-input bg-background text-white' : 'border border-gray-300 bg-white text-black'}`} /> : row.studentName}</h3>
 						<StatusPill status={row.status} editing={editing} value={local.status} onChange={v=>onChange('status',v)} />
 					</div>
-					<p className="text-sm text-muted-foreground break-all">{editing ? <input value={local.email} onChange={e=>onChange('email',e.target.value)} className="border border-input px-1 py-0.5 rounded bg-background" /> : row.email}</p>
+					<p className="text-sm text-muted-foreground break-all">{editing ? <input value={local.email} onChange={e=>onChange('email',e.target.value)} className={`border rounded px-1 py-0.5 text-sm ${isDark ? 'border border-input bg-background text-white' : 'border border-gray-300 bg-white text-black'}`} /> : row.email}</p>
 				</div>
 				<div className="flex gap-2 ml-auto">
 					{editing ? (
 						<>
-							<Button size="sm" onClick={save}><Save className="w-4 h-4" /></Button>
-							<Button size="sm" variant="ghost" onClick={()=>{ setEditing(false); setLocal(row) }}><X className="w-4 h-4" /></Button>
+							<Button size="sm" onClick={save} style={{ backgroundColor: isDark ? undefined : 'black', color: isDark ? undefined : 'white' }}><Save className="w-4 h-4" /></Button>
+							<Button size="sm" variant="ghost" onClick={()=>{ setEditing(false); setLocal(row) }} style={{ backgroundColor: isDark ? undefined : 'lightgray', color: isDark ? undefined : 'black' }}><X className="w-4 h-4" /></Button>
 						</>
 					) : (
 						<>
@@ -157,21 +163,22 @@ function StudentCard({ row, dispatch }){
 }
 
 function InfoRow({ label, value, editing, editKey, local, onChange, multiline }){
+	const { isDark } = useTheme()
 	return (
 		<div>
 			<div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">{label}</div>
 			{editing ? (
 				multiline ? (
-					<textarea value={local[editKey]||''} onChange={e=>onChange(editKey,e.target.value)} className="w-full border border-input rounded px-2 py-1 text-sm bg-background" rows={2} />
+					<textarea value={local[editKey]||''} onChange={e=>onChange(editKey,e.target.value)} className={`w-full border rounded px-2 py-1 text-sm ${isDark ? 'border border-input bg-background text-white' : 'border border-gray-300 bg-white text-black'}`} rows={2} />
 				) : (
-					<input value={local[editKey]||''} onChange={e=>onChange(editKey,e.target.value)} className="w-full border border-input rounded px-2 py-1 text-sm bg-background" />
+					<input value={local[editKey]||''} onChange={e=>onChange(editKey,e.target.value)} className={`w-full border rounded px-2 py-1 text-sm ${isDark ? 'border border-input bg-background text-white' : 'border border-gray-300 bg-white text-black'}`} />
 				)
 			) : (
 				<div className="leading-snug whitespace-pre-wrap break-words text-foreground">{value || <span className="text-muted-foreground">—</span>}</div>
 			)}
 		</div>
 	)
-}
+} 
 
 function StatusPill({ status, editing, value, onChange }){
 	const statusStyles = {
@@ -180,8 +187,9 @@ function StatusPill({ status, editing, value, onChange }){
 		'Pending': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
 	}
 	if(editing){
+		const { isDark } = useTheme()
 		return (
-			<select value={value} onChange={e=>onChange(e.target.value)} className="text-xs border border-input rounded px-2 py-1 bg-background">
+			<select value={value} onChange={e=>onChange(e.target.value)} className={`text-xs border rounded px-2 py-1 ${isDark ? 'border border-input bg-background text-white' : 'border border-gray-300 bg-white text-black'}`}>
 				<option>Active</option>
 				<option>Inactive</option>
 				<option>Pending</option>

@@ -26,12 +26,14 @@ import { getImageUrl } from '@/lib/imageUtils'
 import BackButton from '../Components/ui/backButton'
 import { pushNotification } from '@/redux/slices/notificationsSlice'
 import MessageAttachment from '../Components/shared/MessageAttachment'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function Message(){
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const conns = useSelector(selectConnections)
   const msg = useSelector(selectMessages)
+  const { isDark } = useTheme()
   const [search, setSearch] = useState('')
   const [text, setText] = useState('')
   const [selectedFiles, setSelectedFiles] = useState([])
@@ -291,7 +293,7 @@ export default function Message(){
               {/* Conversations List */}
               <div className={`w-full sm:w-80 md:w-96 lg:w-[400px] flex-col ${activePeerId ? 'hidden sm:flex' : 'flex'}`}>
                 {/* Search Header */}
-                <div className="p-4 sm:p-6" style={{ backgroundColor: '#121212' }}>
+                <div className={`p-4 sm:p-6 ${isDark ? 'bg-[#121212]' : 'bg-gray-50'}`}>
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2.5 rounded-xl bg-primary/10">
                       <MessageSquare className="h-6 w-6 text-primary" />
@@ -315,7 +317,7 @@ export default function Message(){
                 </div>
 
                 {/* Conversations List */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: '#121212' }}>
+                <div className={`flex-1 overflow-y-auto overflow-x-hidden ${isDark ? 'bg-[#121212]' : 'bg-gray-50'}`}>
                   {directory.length===0 ? (
                     <div className="flex items-center justify-center h-full p-6">
                       <Card>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import logoUrl from '@/assets/logo.png'
+import { useTheme } from '@/hooks/useTheme'
 
 const SidebarCtx = createContext({ isOpen: true, toggleSidebar: () => {}, isMobile:false })
 
@@ -73,16 +74,35 @@ export const SidebarFooter = ({ children }) => <div className="p-2 mt-auto">{chi
 export const SidebarMenu = ({ children }) => <ul className="space-y-1">{children}</ul>
 export const SidebarMenuItem = ({ children }) => <li className="relative">{children}</li>
 export const SidebarMenuButton = ({ children, asChild=false, size='md', tooltip, active=false }) => {
+  const { isDark } = useTheme()
   const Comp = asChild? 'span':'button'
   // Increased left padding (pl-8) for more spacing from left edge; balanced with pr-4
-  return <Comp className={cn('w-full flex items-center gap-4 text-lg pl-8 pr-4 py-3 rounded-full hover:bg-white/5 dark:hover:bg-white/5 transition-all duration-300', size==='lg' && 'py-3 text-base font-medium', active && 'bg-gradient-to-br from-neutral-800/40 to-neutral-900/60 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] hover:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)]')}>{children}</Comp>
+  // Active state: light-gray bold text in light mode, gradient in dark mode
+  const activeClasses = active 
+    ? isDark
+      ? 'bg-gradient-to-br from-neutral-800/40 to-neutral-900/60 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] hover:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)]'
+      : 'text-gray-400 font-bold'
+    : isDark
+      ? 'hover:bg-white/5'
+      : 'hover:bg-gray-100'
+  
+  return <Comp className={cn('w-full flex items-center gap-4 text-lg pl-8 pr-4 py-3 rounded-full transition-all duration-300', size==='lg' && 'py-3 text-base font-medium', activeClasses)}>{children}</Comp>
 }
 export const SidebarMenuAction = ({ children, className='' }) => <button className={cn('absolute right-2 top-2 text-xs opacity-70 hover:opacity-100 transition-transform', className)}>{children}</button>
 export const SidebarMenuSub = ({ children }) => <ul className="pl-6 py-1 space-y-1">{children}</ul>
 export const SidebarMenuSubItem = ({ children }) => <li>{children}</li>
 export const SidebarMenuSubButton = ({ children, asChild=false, active=false }) => {
+  const { isDark } = useTheme()
   const Comp = asChild? 'span':'button'
-  return <Comp className={cn("w-full flex text-xs items-center gap-2 px-2 py-1.5 rounded hover:bg-white/5 dark:hover:bg-white/5 transition-all duration-300", active && 'bg-gradient-to-br from-neutral-800/40 to-neutral-900/60 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.5),inset_-1px_-1px_3px_rgba(255,255,255,0.05)] hover:shadow-[inset_1px_1px_3px_rgba(0,0,0,0.5),inset_-1px_-1px_3px_rgba(255,255,255,0.05)]')}>{children}</Comp>
+  const activeClasses = active
+    ? isDark
+      ? 'bg-gradient-to-br from-neutral-800/40 to-neutral-900/60 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.5),inset_-1px_-1px_3px_rgba(255,255,255,0.05)] hover:shadow-[inset_1px_1px_3px_rgba(0,0,0,0.5),inset_-1px_-1px_3px_rgba(255,255,255,0.05)]'
+      : 'text-gray-400 font-bold'
+    : isDark
+      ? 'hover:bg-white/5'
+      : 'hover:bg-gray-100'
+  
+  return <Comp className={cn("w-full flex text-xs items-center gap-2 px-2 py-1.5 rounded transition-all duration-300", activeClasses)}>{children}</Comp>
 }
 
 // Main content area: provide its own vertical scroll so sidebar stays static

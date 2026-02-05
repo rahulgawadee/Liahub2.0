@@ -18,10 +18,12 @@ import {
   DialogTitle,
 } from '@/Components/ui/dialog'
 import apiClient from '@/lib/apiClient'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function Feed() {
   const { user } = useSelector(selectAuth)
   const navigate = useNavigate()
+  const { isDark } = useTheme()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [successModalOpen, setSuccessModalOpen] = useState(false)

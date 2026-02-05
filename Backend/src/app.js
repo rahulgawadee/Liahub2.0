@@ -28,6 +28,8 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+// Serve static templates (Excel/Markdown) used by the frontend upload dialogs
+app.use('/templates', express.static(path.join(__dirname, '..', 'public', 'templates')));
 
 // Serve built frontend when available (for Render or static deployments)
 const frontendDistPath = path.join(__dirname, "..", "..", "dist");

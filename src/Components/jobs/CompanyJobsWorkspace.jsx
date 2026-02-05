@@ -27,6 +27,7 @@ import OfferLetterDialog from '@/Components/shared/OfferLetterDialog'
 import CreatePostingDialog from './CreatePostingDialog'
 import SuccessModal from './SuccessModal'
 import { Users, BadgeCheck, FileText, Filter, Inbox } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
 
 const StatusBadge = ({ status }) => {
   const toneMap = {
@@ -46,15 +47,15 @@ const StatusBadge = ({ status }) => {
   return <Badge tone={toneMap[status] || 'default'}>{displayText}</Badge>
 }
 
-const SummaryCard = ({ icon: Icon, title, value, hint }) => (
-  <Card className="bg-slate-950/60 border-slate-800">
+const SummaryCard = ({ icon: Icon, title, value, hint, isDark }) => (
+  <Card className={isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-gray-200'}>
     <CardHeader className="flex flex-row items-center justify-between">
-      <CardTitle className="text-sm font-medium text-white/70">{title}</CardTitle>
-      {Icon ? <Icon className="h-5 w-5 text-white/50" /> : null}
+      <CardTitle className={`text-sm font-medium ${isDark ? 'text-white/70' : 'text-gray-600'}`}>{title}</CardTitle>
+      {Icon ? <Icon className={`h-5 w-5 ${isDark ? 'text-white/50' : 'text-gray-500'}`} /> : null}
     </CardHeader>
     <CardContent>
-      <p className="text-2xl font-semibold text-white">{value}</p>
-      {hint ? <p className="text-xs text-white/50 mt-1">{hint}</p> : null}
+      <p className={`text-2xl font-semibold ${isDark ? 'text-white' : 'text-black'}`}>{value}</p>
+      {hint ? <p className={`text-xs mt-1 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{hint}</p> : null}
     </CardContent>
   </Card>
 )
@@ -195,6 +196,7 @@ export default function CompanyJobsWorkspace({
   defaultJobType = 'Job',
 } = {}) {
   const dispatch = useDispatch()
+  const { isDark } = useTheme()
   const { user } = useSelector(selectAuth)
   const summaries = useSelector(summariesSelector)
   
@@ -415,34 +417,44 @@ export default function CompanyJobsWorkspace({
       <div className="flex flex-1 min-h-0">
         <AppSidebar />
         <SidebarInset>
-          <div className="px-6 py-6 space-y-6 text-white">
+          <div className={`px-6 py-6 space-y-6 ${isDark ? 'text-white' : 'text-black'}`}>
             <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-2xl font-semibold">{title}</h1>
-                <p className="text-sm text-white/70">{description}</p>
+                <p className={`text-sm ${isDark ? 'text-white/70' : 'text-gray-600'}`}>{description}</p>
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => setCreateOpen(true)}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setCreateOpen(true)}
+                  style={{
+                    backgroundColor: isDark ? 'transparent' : 'black',
+                    color: 'white',
+                    borderColor: isDark ? '' : 'black'
+                  }}
+                  className="hover:opacity-80"
+                >
                   Add new posting
                 </Button>
               </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <SummaryCard icon={Users} title="Applicants" value={activeEntry?.applicants?.length || 0} />
-              <SummaryCard icon={Inbox} title="New" value={newApplications.length} hint="Awaiting review" />
-              <SummaryCard icon={BadgeCheck} title="Selected" value={selectedCount} />
-              <SummaryCard icon={FileText} title="Offers sent" value={(activeEntry?.applicants || []).filter((app) => app.status === 'offer-sent').length} />
+              <SummaryCard icon={Users} title="Applicants" value={activeEntry?.applicants?.length || 0} isDark={isDark} />
+              <SummaryCard icon={Inbox} title="New" value={newApplications.length} hint="Awaiting review" isDark={isDark} />
+              <SummaryCard icon={BadgeCheck} title="Selected" value={selectedCount} isDark={isDark} />
+              <SummaryCard icon={FileText} title="Offers sent" value={(activeEntry?.applicants || []).filter((app) => app.status === 'offer-sent').length} isDark={isDark} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="bg-slate-950/60 border-slate-800 lg:col-span-1">
+              <Card className={`lg:col-span-1 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-gray-200'}`}>
                 <CardHeader>
-                  <CardTitle className="text-base text-white">All postings</CardTitle>
+                  <CardTitle className={`text-base ${isDark ? 'text-white' : 'text-black'}`}>All postings</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {filteredSummaries.length === 0 ? (
-                    <p className="text-sm text-white/60">Create your first posting to start tracking applications.</p>
+                    <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>Create your first posting to start tracking applications.</p>
                   ) : (
                     filteredSummaries.map((job) => (
                       <button
@@ -452,18 +464,20 @@ export default function CompanyJobsWorkspace({
                         className={`w-full rounded-2xl border px-4 py-4 text-left transition-all ${
                           job.jobId === activeId
                             ? 'border-blue-500 bg-blue-500/10 shadow-lg'
-                            : 'border-slate-800 bg-slate-950/70 hover:border-blue-500/40 hover:bg-slate-900'
+                            : isDark
+                              ? 'border-slate-800 bg-slate-950/70 hover:border-blue-500/40 hover:bg-slate-900'
+                              : 'border-gray-200 bg-white hover:border-blue-500/40 hover:bg-gray-50'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-white">{job.jobTitle}</p>
-                            <p className="text-xs text-white/60">{job.company}</p>
-                            <p className="text-[11px] text-white/50 mt-1">{job.jobType} • {job.location}</p>
+                            <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-black'}`}>{job.jobTitle}</p>
+                            <p className={`text-xs ${isDark ? 'text-white/60' : 'text-gray-600'}`}>{job.company}</p>
+                            <p className={`text-[11px] mt-1 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{job.jobType} • {job.location}</p>
                           </div>
                           <Badge tone="accent">{job.summary.total}</Badge>
                         </div>
-                        <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-white/70">
+                        <div className={`mt-3 grid grid-cols-3 gap-2 text-[11px] ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
                           <span>Selected: {job.summary.selected}</span>
                           <span>Offers: {job.summary.offers}</span>
                           <span>Pending: {job.summary.inProcess}</span>
@@ -474,22 +488,22 @@ export default function CompanyJobsWorkspace({
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-950/60 border-slate-800 lg:col-span-2">
+              <Card className={`lg:col-span-2 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-gray-200'}`}>
                 <CardHeader>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
-                      <CardTitle className="text-base text-white/90">{activeEntry ? activeTitle : 'Select a posting'}</CardTitle>
-                      <p className="text-xs text-white/60">
+                      <CardTitle className={`text-base ${isDark ? 'text-white/90' : 'text-black'}`}>{activeEntry ? activeTitle : 'Select a posting'}</CardTitle>
+                      <p className={`text-xs ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
                         {activeEntry ? `${activeCompany} • ${activeLocation}` : 'Choose a posting to review applicants'}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-950 px-4 py-2">
-                      <Filter className="h-4 w-4 text-white/40" />
+                    <div className={`flex items-center gap-2 rounded-full border px-4 py-2 ${isDark ? 'border-slate-800 bg-slate-950' : 'border-gray-200 bg-white'}`}>
+                      <Filter className={`h-4 w-4 ${isDark ? 'text-white/40' : 'text-gray-400'}`} />
                       <Input
                         placeholder="Search applicants"
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
-                        className="h-8 bg-transparent border-0 focus-visible:ring-0 text-white"
+                        className={`h-8 bg-transparent border-0 focus-visible:ring-0 ${isDark ? 'text-white' : 'text-black'}`}
                       />
                     </div>
                   </div>
@@ -498,8 +512,8 @@ export default function CompanyJobsWorkspace({
                   {activeEntry ? (
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[680px] text-sm">
-                        <thead className="text-xs uppercase text-white/50">
-                          <tr className="text-left border-b border-slate-800">
+                        <thead className={`text-xs uppercase ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
+                          <tr className={`text-left border-b ${isDark ? 'border-slate-800' : 'border-gray-200'}`}>
                             <th className="py-3 pr-4">Candidate</th>
                             <th className="py-3 pr-4">Institute</th>
                             <th className="py-3 pr-4">Status</th>
@@ -511,25 +525,25 @@ export default function CompanyJobsWorkspace({
                         <tbody>
                           {applicants.length === 0 ? (
                             <tr>
-                              <td colSpan={6} className="py-6 text-center text-white/60">
+                              <td colSpan={6} className={`py-6 text-center ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
                                 No applicants match the current filters.
                               </td>
                             </tr>
                           ) : (
                             applicants.map((applicant) => (
-                              <tr key={applicant.id} className="border-b border-slate-900/60 hover:bg-slate-900/60">
+                              <tr key={applicant.id} className={`border-b ${isDark ? 'border-slate-900/60 hover:bg-slate-900/60' : 'border-gray-200 hover:bg-gray-50'}`}>
                                 <td className="py-3 pr-4">
                                   <div>
-                                    <p className="font-medium text-white">{applicant.studentName}</p>
-                                    <p className="text-xs text-white/50">Submitted {applicant.submittedOn}</p>
+                                    <p className={`font-medium ${isDark ? 'text-white' : 'text-black'}`}>{applicant.studentName}</p>
+                                    <p className={`text-xs ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Submitted {applicant.submittedOn}</p>
                                   </div>
                                 </td>
-                                <td className="py-3 pr-4 text-white/70">{applicant.institute || '—'}</td>
+                                <td className={`py-3 pr-4 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>{applicant.institute || '—'}</td>
                                 <td className="py-3 pr-4">
                                   <StatusBadge status={applicant.status} />
                                 </td>
-                                <td className="py-3 pr-4 text-white/70">{applicant.profileScore ?? '—'}</td>
-                                <td className="py-3 pr-4 text-white/70">{applicant.stage || '—'}</td>
+                                <td className={`py-3 pr-4 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>{applicant.profileScore ?? '—'}</td>
+                                <td className={`py-3 pr-4 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>{applicant.stage || '—'}</td>
                                 <td className="py-3">
                                   <ApplicantActions
                                     applicant={applicant}
@@ -546,7 +560,7 @@ export default function CompanyJobsWorkspace({
                       </table>
                     </div>
                   ) : (
-                    <p className="text-sm text-white/60">Select a posting to review candidates.</p>
+                    <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>Select a posting to review candidates.</p>
                   )}
                 </CardContent>
               </Card>

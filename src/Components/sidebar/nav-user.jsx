@@ -6,10 +6,12 @@ import { useDispatch } from 'react-redux'
 import { logout } from '@/redux/slices/authSlice'
 import { useNavigate } from 'react-router-dom'
 import { getDisplayNameWithSubtitle } from '@/lib/displayNameUtils'
+import { useTheme } from '@/hooks/useTheme'
 
 export function NavUser({ user }){
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const { isDark } = useTheme()
 
   const { displayName, subtitle } = React.useMemo(() => {
     return getDisplayNameWithSubtitle(user)
@@ -32,12 +34,12 @@ export function NavUser({ user }){
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <div className="group rounded-full hover:bg-gray-200/50 dark:hover:bg-gray-800/50 transition-all duration-200 cursor-pointer p-3 flex items-center gap-3">
+        <div className={`group rounded-full transition-all duration-300 cursor-pointer p-3 flex items-center gap-3 ${isDark ? 'hover:bg-gray-900' : 'hover:bg-gray-100'}`}>
           <div onClick={()=>navigate('/profile')} className="flex items-center gap-3 flex-1 min-w-0">
             <Avatar className="h-10 w-10 rounded-full"><AvatarFallback /></Avatar>
-            <div className="flex flex-col text-left leading-tight flex-1 min-w-0">
-              <span className="truncate font-semibold text-sm">{displayName}</span>
-              <span className="truncate text-xs text-muted-foreground">{subtitle || handle}</span>
+            <div className={`flex flex-col text-left leading-tight flex-1 min-w-0 transition-colors duration-300 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+              <span className={`truncate font-semibold text-sm transition-colors duration-300 ${isDark ? 'text-white' : 'text-black'}`}>{displayName}</span>
+              <span className={`truncate text-xs transition-colors duration-300 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{subtitle || handle}</span>
             </div>
           </div>
           <button
@@ -45,11 +47,11 @@ export function NavUser({ user }){
             onClick={onLogout}
             aria-label="Logout"
             title="Logout"
-            className="relative p-2 rounded-full text-red-400 hover:text-red-500 hover:bg-red-400/10 focus:outline-none focus:ring-2 focus:ring-red-400/40"
+            className={`relative p-2 rounded-full transition-all duration-300 ${isDark ? 'text-red-400 hover:text-red-300 hover:bg-red-400/10' : 'text-red-600 hover:text-red-700 hover:bg-red-100'} focus:outline-none focus:ring-2 focus:ring-red-400/40`}
           >
             <LogOut className="size-5" />
             {/* Tooltip */}
-            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-8 scale-0 group-hover:scale-100 transition-transform bg-neutral-800 text-white text-[10px] px-2 py-1 rounded shadow">
+            <span className={`pointer-events-none absolute left-1/2 -translate-x-1/2 -top-8 scale-0 group-hover:scale-100 transition-transform text-white text-[10px] px-2 py-1 rounded shadow ${isDark ? 'bg-gray-700' : 'bg-gray-800'}`}>
               Logout
             </span>
           </button>

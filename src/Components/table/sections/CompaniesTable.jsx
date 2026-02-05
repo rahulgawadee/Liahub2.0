@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { SECTION_KEYS, startEdit, cancelEdit, updateRow, deleteSchoolRecord, selectIsEditing } from '@/redux/slices/tableSlice'
 import { Button } from '@/Components/ui/button'
 import { Edit, Trash, Save, X } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function CompaniesTable({ state }){
 	const rows = state.data
@@ -105,6 +106,7 @@ function Row({ row, dispatch }){
 function CompanyCard({ row, dispatch }){
 	const isEditing = useSelector(selectIsEditing(SECTION_KEYS.companies, row.id))
 	const [local, setLocal] = React.useState(row)
+	const { isDark } = useTheme()
 	React.useEffect(()=>{ setLocal(row) }, [row, isEditing])
 
 	const onChange=(k,v)=> setLocal(l=>({...l,[k]:v}))
@@ -149,8 +151,8 @@ function CompanyCard({ row, dispatch }){
 				<div className="flex gap-1 ml-auto">
 					{isEditing ? (
 						<>
-							<Button size="sm" variant="ghost" onClick={onSave}><Save className="w-4 h-4" /></Button>
-							<Button size="sm" variant="ghost" onClick={onCancel}><X className="w-4 h-4" /></Button>
+							<Button size="sm" variant="ghost" onClick={onSave} style={{ backgroundColor: isDark ? undefined : 'black', color: isDark ? undefined : 'white' }}><Save className="w-4 h-4" /></Button>
+							<Button size="sm" variant="ghost" onClick={onCancel} style={{ backgroundColor: isDark ? undefined : 'lightgray', color: isDark ? undefined : 'black' }}><X className="w-4 h-4" /></Button>
 						</>
 					) : (
 						<>

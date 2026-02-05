@@ -7,6 +7,7 @@ import { useAuthService } from './hooks/useAuthService'
 import { receiveRealtimeMessage } from './redux/slices/messagesSlice'
 import { connectSocket, disconnectSocket } from './lib/socketClient'
 import ContractGuard from './Components/shared/ContractGuard'
+import { ThemeProvider } from './providers/ThemeProvider'
 
 import Login from './Pages/Login'
 import Register from './Pages/Register'
@@ -93,37 +94,39 @@ function ProtectedLayout() {
 function App() {
   return (
     <Provider store={store}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Homepage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Homepage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-          <Route element={<ProtectedLayout />}>
-            <Route path="/lia" element={<Lia />} />
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/explore" element={<Explore />} />
-            <Route path="/jobs" element={<Jobs />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/contracts" element={<Contracts />} />
-            <Route path="/network" element={<Network />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/message" element={<Message />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/verified" element={<Verified />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/:section" element={<Profile />} />
-            <Route path="/view/profile/:id" element={<ProfileView />} />
-            <Route path="/student" element={<StudentDashboard />} />
-            <Route path="/school" element={<SchoolDashboard />} />
-            <Route path="/universities" element={<UniversitiesDashboard />} />
-            <Route path="/company" element={<CompanyHome />} />
-          </Route>
+            <Route element={<ProtectedLayout />}>
+              <Route path="/lia" element={<Lia />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/contracts" element={<Contracts />} />
+              <Route path="/network" element={<Network />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/message" element={<Message />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/verified" element={<Verified />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:section" element={<Profile />} />
+              <Route path="/view/profile/:id" element={<ProfileView />} />
+              <Route path="/student" element={<StudentDashboard />} />
+              <Route path="/school" element={<SchoolDashboard />} />
+              <Route path="/universities" element={<UniversitiesDashboard />} />
+              <Route path="/company" element={<CompanyHome />} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/lia" replace />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<Navigate to="/lia" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
     </Provider>
   )
 }

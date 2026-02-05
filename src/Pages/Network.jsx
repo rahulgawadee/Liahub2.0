@@ -23,6 +23,7 @@ import { Button } from '@/Components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/Components/ui/card'
 import { Badge } from '@/Components/ui/badge'
 import { Separator } from '@/Components/ui/separator'
+import { useTheme } from '@/hooks/useTheme'
 import { 
   Users, 
   UserPlus, 
@@ -39,6 +40,7 @@ import {
 import { mapUserPreview } from '@/lib/mappers/users'
 
 export default function Network() {
+  const { isDark } = useTheme()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const conns = useSelector(selectConnections)
@@ -338,14 +340,18 @@ export default function Network() {
             </div>
 
             {/* Search Bar */}
-            <div className="rounded-xl p-3" style={{ backgroundColor: '#121212' }}>
+            <div className={`rounded-xl p-3 transition-colors duration-300 ${
+              isDark ? 'bg-[#121212]' : 'bg-gray-50'
+            }`}>
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Search people"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-12 pl-12 pr-4 text-sm rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20  border border-border"
+                  className={`w-full h-12 pl-12 pr-4 text-sm rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 border transition-colors duration-300 ${
+                    isDark ? 'bg-black text-white border-border' : 'bg-white text-black border-gray-300'
+                  }`}
                 />
                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               </div>
@@ -355,21 +361,30 @@ export default function Network() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
               {tabDefinitions.map((tab) => {
                 const Icon = tab.icon
+                const isSelected = activeTab === tab.key
                 return (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
+                    style={isSelected ? {
+                      backgroundColor: isDark ? 'white' : 'black',
+                      color: isDark ? 'black' : 'white'
+                    } : undefined}
                     className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                      activeTab === tab.key
-                        ? 'bg-white text-black shadow-sm'
-                        : 'bg-muted/50 text-foreground hover:bg-muted'
+                      isSelected
+                        ? 'shadow-sm'
+                        : isDark 
+                          ? 'bg-muted/50 text-foreground hover:bg-muted'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <Icon className="h-4 w-4" />
                     {tab.label}
                     {tab.count > 0 && (
                       <span className={`ml-1 text-xs ${
-                        activeTab === tab.key ? 'text-black/70' : 'text-muted-foreground'
+                        isSelected 
+                          ? (isDark ? 'text-black/70' : 'text-white/70')
+                          : 'text-muted-foreground'
                       }`}>
                         ({tab.count})
                       </span>
@@ -380,7 +395,9 @@ export default function Network() {
             </div>
 
             {/* Content List */}
-            <div className="rounded-xl p-3" style={{ backgroundColor: '#121212' }}>
+            <div className={`rounded-xl p-3 transition-colors duration-300 ${
+              isDark ? 'bg-[#121212]' : 'bg-gray-50'
+            }`}>
               <div className="rounded-lg">
                 <div className="py-2">
                   {filteredEntries?.length ? (

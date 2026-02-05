@@ -18,10 +18,12 @@ import {
   fetchSchoolLIAApplications,
 } from '@/redux/slices/lia/liaApplicationsSlice'
 import { selectAuth } from '@/redux/store'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function Lia() {
   const dispatch = useDispatch()
   const { user } = useSelector(selectAuth)
+  const { isDark } = useTheme()
 
   const entity = user?.entity
   const isCompany = entity === 'company'

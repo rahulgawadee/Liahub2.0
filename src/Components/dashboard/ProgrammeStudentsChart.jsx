@@ -1,8 +1,11 @@
 import React from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/card'
 import { BookOpen, Users, CheckCircle2, Clock, XCircle, AlertCircle, TrendingUp, Award } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function ProgrammeStudentsChart({ studentData = [] }) {
+  const { isDark } = useTheme()
+  
   // Group students by programme
   const programmeData = React.useMemo(() => {
     const groups = {}
@@ -38,18 +41,18 @@ export default function ProgrammeStudentsChart({ studentData = [] }) {
   const overallCompletionRate = totalStudents > 0 ? Math.round((totalConfirmed / totalStudents) * 100) : 0
 
   return (
-    <Card className="bg-[#0a0a0a] border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
-      <CardHeader className="border-b border-white/5 pb-4">
+    <Card className={`transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.5)]' : 'bg-white border border-gray-200 shadow-md'}`}>
+      <CardHeader className={`border-b pb-4 transition-colors duration-300 ${isDark ? 'border-white/5' : 'border-gray-200'}`}>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-400/20">
               <Award className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <CardTitle className="text-lg font-bold text-white">
+              <CardTitle className={`text-lg font-bold transition-colors duration-300 ${isDark ? 'text-white' : 'text-black'}`}>
                 Student Placement Overview
               </CardTitle>
-              <p className="text-xs text-white/50 mt-0.5">Programme-wise distribution and status</p>
+              <p className={`text-xs mt-0.5 transition-colors duration-300 ${isDark ? 'text-white/50' : 'text-gray-600'}`}>Programme-wise distribution and status</p>
             </div>
           </div>
           
@@ -59,8 +62,8 @@ export default function ProgrammeStudentsChart({ studentData = [] }) {
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-400" />
                 <div>
-                  <div className="text-xs text-white/50">Total Students</div>
-                  <div className="text-lg font-bold text-white">{totalStudents}</div>
+                  <div className={`text-xs transition-colors duration-300 ${isDark ? 'text-white/50' : 'text-gray-600'}`}>Total Students</div>
+                  <div className={`text-lg font-bold transition-colors duration-300 ${isDark ? 'text-white' : 'text-black'}`}>{totalStudents}</div>
                 </div>
               </div>
             </div>
@@ -68,8 +71,8 @@ export default function ProgrammeStudentsChart({ studentData = [] }) {
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
                 <div>
-                  <div className="text-xs text-white/50">Placement Rate</div>
-                  <div className="text-lg font-bold text-emerald-400">{overallCompletionRate}%</div>
+                  <div className={`text-xs transition-colors duration-300 ${isDark ? 'text-white/50' : 'text-gray-600'}`}>Placement Rate</div>
+                  <div className={`text-lg font-bold transition-colors duration-300 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{overallCompletionRate}%</div>
                 </div>
               </div>
             </div>
@@ -80,8 +83,8 @@ export default function ProgrammeStudentsChart({ studentData = [] }) {
       <CardContent className="pt-6">
         {programmeData.length === 0 ? (
           <div className="py-16 text-center">
-            <BookOpen className="w-12 h-12 mx-auto mb-3 text-white/20" />
-            <p className="text-sm text-white/40">No student data available</p>
+            <BookOpen className={`w-12 h-12 mx-auto mb-3 transition-colors duration-300 ${isDark ? 'text-white/20' : 'text-gray-300'}`} />
+            <p className={`text-sm transition-colors duration-300 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>No student data available</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -92,7 +95,7 @@ export default function ProgrammeStudentsChart({ studentData = [] }) {
               const unassignedPercentage = prog.total > 0 ? (prog.unassigned / prog.total) * 100 : 0
 
               return (
-                <div key={prog.name} className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-blue-400/30 transition-all duration-300 hover:shadow-[0_8px_24px_rgba(59,130,246,0.15)]">
+                <div key={prog.name} className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-md ${isDark ? 'bg-white/5 border-white/10 hover:border-blue-400/30 hover:shadow-[0_8px_24px_rgba(59,130,246,0.15)]' : 'bg-gray-50 border-gray-200 hover:border-blue-300 hover:shadow-lg'}`}>
                   {/* Programme Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -100,8 +103,8 @@ export default function ProgrammeStudentsChart({ studentData = [] }) {
                         {index + 1}
                       </div>
                       <div>
-                        <h4 className="font-bold text-base text-white">{prog.name}</h4>
-                        <p className="text-xs text-white/50 mt-0.5">{prog.total} students enrolled</p>
+                        <h4 className={`font-bold text-base transition-colors duration-300 ${isDark ? 'text-white' : 'text-black'}`}>{prog.name}</h4>
+                        <p className={`text-xs mt-0.5 transition-colors duration-300 ${isDark ? 'text-white/50' : 'text-gray-600'}`}>{prog.total} students enrolled</p>
                       </div>
                     </div>
                     
@@ -112,7 +115,7 @@ export default function ProgrammeStudentsChart({ studentData = [] }) {
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="relative h-8 rounded-lg bg-white/5 border border-white/10 overflow-hidden mb-4">
+                  <div className={`relative h-8 rounded-lg border overflow-hidden mb-4 transition-colors duration-300 ${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
                     <div className="h-full flex">
                       {/* Confirmed */}
                       {confirmedPercentage > 0 && (
@@ -163,38 +166,38 @@ export default function ProgrammeStudentsChart({ studentData = [] }) {
                   {/* Status Breakdown */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {prog.confirmed > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-400/20">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors duration-300 ${isDark ? 'bg-emerald-500/10 border-emerald-400/20' : 'bg-emerald-50 border-emerald-200'}`}>
+                        <CheckCircle2 className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
                         <div className="min-w-0">
-                          <div className="text-xs text-emerald-200/60">Confirmed</div>
-                          <div className="text-sm font-bold text-emerald-400">{prog.confirmed}</div>
+                          <div className={`text-xs transition-colors duration-300 ${isDark ? 'text-emerald-200/60' : 'text-emerald-700'}`}>Confirmed</div>
+                          <div className={`text-sm font-bold transition-colors duration-300 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{prog.confirmed}</div>
                         </div>
                       </div>
                     )}
                     {prog.pending > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-400/20">
-                        <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors duration-300 ${isDark ? 'bg-amber-500/10 border-amber-400/20' : 'bg-amber-50 border-amber-200'}`}>
+                        <Clock className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
                         <div className="min-w-0">
-                          <div className="text-xs text-amber-200/60">Pending</div>
-                          <div className="text-sm font-bold text-amber-400">{prog.pending}</div>
+                          <div className={`text-xs transition-colors duration-300 ${isDark ? 'text-amber-200/60' : 'text-amber-700'}`}>Pending</div>
+                          <div className={`text-sm font-bold transition-colors duration-300 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>{prog.pending}</div>
                         </div>
                       </div>
                     )}
                     {prog.rejected > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-400/20">
-                        <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors duration-300 ${isDark ? 'bg-red-500/10 border-red-400/20' : 'bg-red-50 border-red-200'}`}>
+                        <XCircle className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${isDark ? 'text-red-400' : 'text-red-600'}`} />
                         <div className="min-w-0">
-                          <div className="text-xs text-red-200/60">Rejected</div>
-                          <div className="text-sm font-bold text-red-400">{prog.rejected}</div>
+                          <div className={`text-xs transition-colors duration-300 ${isDark ? 'text-red-200/60' : 'text-red-700'}`}>Rejected</div>
+                          <div className={`text-sm font-bold transition-colors duration-300 ${isDark ? 'text-red-400' : 'text-red-600'}`}>{prog.rejected}</div>
                         </div>
                       </div>
                     )}
                     {prog.unassigned > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-500/10 border border-slate-400/20">
-                        <AlertCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors duration-300 ${isDark ? 'bg-slate-500/10 border-slate-400/20' : 'bg-slate-50 border-slate-200'}`}>
+                        <AlertCircle className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${isDark ? 'text-slate-400' : 'text-slate-600'}`} />
                         <div className="min-w-0">
-                          <div className="text-xs text-slate-200/60">Unassigned</div>
-                          <div className="text-sm font-bold text-slate-400">{prog.unassigned}</div>
+                          <div className={`text-xs transition-colors duration-300 ${isDark ? 'text-slate-200/60' : 'text-slate-700'}`}>Unassigned</div>
+                          <div className={`text-sm font-bold transition-colors duration-300 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{prog.unassigned}</div>
                         </div>
                       </div>
                     )}

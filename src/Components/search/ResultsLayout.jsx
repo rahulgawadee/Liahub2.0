@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTheme } from '@/hooks/useTheme'
 import {
   MapPin,
   Clock,
@@ -215,13 +216,13 @@ const ListPanel = ({ items = [], selectedId, onSelect, variant }) => {
   )
 }
 
-const StatCard = ({ icon: Icon, label, value }) => (
-  <div className="rounded-2xl border border-slate-900 bg-slate-950/60 p-4">
-    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-white/40">
+const StatCard = ({ icon: Icon, label, value, isDark }) => (
+  <div className={`rounded-2xl border p-4 ${isDark ? 'border-slate-900 bg-slate-950/60' : 'border-gray-200 bg-white'}`}>
+    <div className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
       <Icon className="h-4 w-4 text-blue-400" />
       {label}
     </div>
-    <div className="mt-2 text-sm font-semibold text-white">{value}</div>
+    <div className={`mt-2 text-sm font-semibold ${isDark ? 'text-white' : 'text-black'}`}>{value}</div>
   </div>
 )
 

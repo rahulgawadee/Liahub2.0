@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { requestOtp, verifyAndRegister, clearError, resetOtp } from '../redux/slices/authSlice'
 import { selectAuth } from '../redux/store'
 import { Button } from '../Components/ui/button'
-import { AuthShell, EntityTabs, FormField, OtpVerification, AUTH_ENTITIES, ENTITY_KEYS } from '../Components/auth'
+import { AuthShell, EntityTabs, FormField, OtpVerification, PolicyModal, AUTH_ENTITIES, ENTITY_KEYS } from '../Components/auth'
 import { getPrimaryEntity } from '@/lib/roles'
+import { useTheme } from '@/hooks/useTheme'
 
 const ENTITY_ROUTE_MAP = ENTITY_KEYS.reduce((acc, key) => {
   acc[key] = AUTH_ENTITIES[key].dashboardRoute
@@ -43,8 +44,10 @@ export default function Register() {
   const [pendingForm, setPendingForm] = useState(null)
   const [otpValue, setOtpValue] = useState('')
   const [step, setStep] = useState('form')
+  const [policyModal, setPolicyModal] = useState({ isOpen: false, type: null })
 
   const { user, loading, error, otp: otpState } = useSelector(selectAuth)
+  const { isDark } = useTheme()
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
@@ -127,15 +130,15 @@ export default function Register() {
     step === 'otp'
       ? null
       : (
-          <p className="text-sm text-gray-400">
+          <p className={`text-sm sm:text-base transition-colors duration-300 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Already have an account?{' '}
-            <Button
-              variant="link"
-              className="text-primary hover:text-primary/80 p-0 h-auto font-semibold"
+            <button
+              type="button"
+              className={`font-semibold transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
               onClick={() => navigate('/login')}
             >
-              Login
-            </Button>
+              Log in
+            </button>
           </p>
         )
 
@@ -145,12 +148,13 @@ export default function Register() {
     .join(' • ')
 
   return (
-    <AuthShell
-      title={step === 'otp' ? 'Verify Your Email' : entityConfig.register.title}
-      description={step === 'otp' ? 'Enter the OTP to activate your workspace.' : entityConfig.register.description}
-      entityTabs={<EntityTabs active={entity} entities={tabs} onSelect={setEntity} disabled={step === 'otp'} />}
-      footer={footer}
-    >
+    <>
+      <AuthShell
+        title={step === 'otp' ? 'Verify Your Email' : entityConfig.register.title}
+        description={step === 'otp' ? 'Enter the OTP to activate your workspace.' : entityConfig.register.description}
+        entityTabs={<EntityTabs active={entity} entities={tabs} onSelect={setEntity} disabled={step === 'otp'} />}
+        footer={footer}
+      >
       {step === 'otp' ? (
         <OtpVerification
           otp={otpValue}
@@ -163,7 +167,7 @@ export default function Register() {
           canSubmit={otpValue.length === 6}
         />
       ) : (
-        <form onSubmit={onSubmitForm} className="space-y-4">
+        <form onSubmit={onSubmitForm} className="space-y-4 sm:space-y-5">
           {visibleRegisterFields.map((field) => (
             <FormField
               key={field.name}
@@ -173,20 +177,69 @@ export default function Register() {
               onChange={onFieldChange}
             />
           ))}
-          {error ? (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-              <p className="text-sm text-red-400">{error}</p>
+          
+          {error && (
+            <div className={`p-3 sm:p-4 rounded-xl border transition-colors duration-300 ${isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200'}`}>
+              <p className={`text-xs sm:text-sm text-center transition-colors duration-300 ${isDark ? 'text-red-400' : 'text-red-600'}`}>{error}</p>
             </div>
-          ) : null}
-          <Button
-            disabled={loading}
-            type="submit"
-            className="neomorph-button w-full h-11 bg-gray-200 hover:bg-white text-black font-semibold transition-all"
-          >
-            {loading ? 'Processing…' : 'SignUp'}
-          </Button>
+          )}
+          
+          <div className="pt-2">
+            <Button
+              disabled={loading}
+              type="submit"
+              style={{
+                backgroundColor: isDark ? 'white' : 'black',
+                color: isDark ? 'black' : 'white'
+              }}
+              className="w-full h-12 sm:h-14 font-bold text-sm sm:text-base rounded-full transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = isDark ? '#f3f4f6' : '#1f2937'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = isDark ? 'white' : 'black'
+              }}
+            >
+              {loading ? 'Processing…' : 'Sign up'}
+            </Button>
+            
+            <p className={`text-xs text-center mt-3 sm:mt-4 leading-relaxed px-2 transition-colors duration-300 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+              By signing up, you agree to the{' '}
+              <button
+                type="button"
+                onClick={() => setPolicyModal({ isOpen: true, type: 'terms' })}
+                className={`hover:underline transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+              >
+                Terms of Service
+              </button>{' '}
+              and{' '}
+              <button
+                type="button"
+                onClick={() => setPolicyModal({ isOpen: true, type: 'privacy' })}
+                className={`hover:underline transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+              >
+                Privacy Policy
+              </button>
+              , including{' '}
+              <button
+                type="button"
+                onClick={() => setPolicyModal({ isOpen: true, type: 'cookies' })}
+                className={`hover:underline transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+              >
+                Cookie Use
+              </button>
+              .
+            </p>
+          </div>
         </form>
       )}
-    </AuthShell>
+      </AuthShell>
+      
+      <PolicyModal
+        type={policyModal.type}
+        isOpen={policyModal.isOpen}
+        onClose={() => setPolicyModal({ isOpen: false, type: null })}
+      />
+    </>
   )
 }

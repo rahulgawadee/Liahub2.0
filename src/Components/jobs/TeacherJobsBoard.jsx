@@ -16,21 +16,28 @@ import {
   fetchJobApplications,
 } from '@/redux/slices/applicationsSlice'
 import { selectAuth } from '@/redux/store'
+import { useTheme } from '@/hooks/useTheme'
 
-const StatChip = ({ icon: Icon, label, value, tone = 'default' }) => {
-  const tones = {
+const StatChip = ({ icon: Icon, label, value, tone = 'default', isDark }) => {
+  const tones = isDark ? {
     default: 'bg-slate-800 border-slate-700 text-slate-200',
     accent: 'bg-blue-900/60 border-blue-500/30 text-blue-100',
     success: 'bg-emerald-900/60 border-emerald-500/30 text-emerald-100',
     warning: 'bg-amber-900/60 border-amber-500/30 text-amber-100',
     danger: 'bg-rose-900/60 border-rose-500/30 text-rose-100',
+  } : {
+    default: 'bg-gray-100 border-gray-300 text-gray-800',
+    accent: 'bg-blue-50 border-blue-300 text-blue-800',
+    success: 'bg-emerald-50 border-emerald-300 text-emerald-800',
+    warning: 'bg-amber-50 border-amber-300 text-amber-800',
+    danger: 'bg-rose-50 border-rose-300 text-rose-800',
   }
   const className = `rounded-2xl border px-4 py-3 flex items-center gap-3 ${tones[tone] ?? tones.default}`
   return (
     <div className={className}>
       {Icon ? <Icon className="h-5 w-5" /> : null}
       <div className="flex flex-col leading-tight">
-        <span className="text-xs uppercase tracking-wide text-white/60">{label}</span>
+        <span className={`text-xs uppercase tracking-wide ${isDark ? 'text-white/60' : 'text-gray-600'}`}>{label}</span>
         <span className="text-lg font-semibold">{value}</span>
       </div>
     </div>
@@ -48,25 +55,25 @@ const statusTone = {
   rejected: 'danger',
 }
 
-const ApplicantRow = ({ applicant }) => {
+const ApplicantRow = ({ applicant, isDark }) => {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 flex flex-col gap-2">
+    <div className={`rounded-2xl border p-4 flex flex-col gap-2 ${isDark ? 'border-slate-800 bg-slate-950/60' : 'border-gray-200 bg-white'}`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-white">{applicant.studentName}</p>
-          <p className="text-xs text-white/60">{applicant.institute}</p>
+          <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-black'}`}>{applicant.studentName}</p>
+          <p className={`text-xs ${isDark ? 'text-white/60' : 'text-gray-600'}`}>{applicant.institute}</p>
         </div>
         <Badge tone={statusTone[applicant.status] || 'default'}>
           {applicant.status.replace(/-|_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
         </Badge>
       </div>
-      <div className="grid grid-cols-2 gap-3 text-xs text-white/70">
+      <div className={`grid grid-cols-2 gap-3 text-xs ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
         <div>
-          <span className="text-white/40 block">Stage</span>
+          <span className={`block ${isDark ? 'text-white/40' : 'text-gray-500'}`}>Stage</span>
           <span>{applicant.stage || '—'}</span>
         </div>
         <div>
-          <span className="text-white/40 block">Submitted</span>
+          <span className={`block ${isDark ? 'text-white/40' : 'text-gray-500'}`}>Submitted</span>
           <span>{applicant.submittedOn || '—'}</span>
         </div>
       </div>
@@ -88,26 +95,26 @@ const ApplicantRow = ({ applicant }) => {
         </div>
       ) : null}
       {applicant.notes ? (
-        <p className="text-xs text-white/70">
-          <span className="text-white/40">Note:</span> {applicant.notes}
+        <p className={`text-xs ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
+          <span className={isDark ? 'text-white/40' : 'text-gray-500'}>Note:</span> {applicant.notes}
         </p>
       ) : null}
       {/* Timeline */}
       {applicant.timeline && applicant.timeline.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-slate-800">
-          <p className="text-xs text-white/40 mb-2">Timeline</p>
+        <div className={`mt-2 pt-2 border-t ${isDark ? 'border-slate-800' : 'border-gray-200'}`}>
+          <p className={`text-xs mb-2 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>Timeline</p>
           <div className="space-y-1">
             {applicant.timeline.slice(-3).reverse().map((event, idx) => (
-              <div key={idx} className="text-xs text-white/60">
-                <span className="text-white/80">
+              <div key={idx} className={`text-xs ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
+                <span className={isDark ? 'text-white/80' : 'text-gray-800'}>
                   {event.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </span>
                 {' - '}
-                <span className="text-white/40">
+                <span className={isDark ? 'text-white/40' : 'text-gray-500'}>
                   {new Date(event.createdAt).toLocaleDateString()}
                 </span>
                 {event.comment && (
-                  <p className="text-white/50 ml-2">→ {event.comment}</p>
+                  <p className={`ml-2 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>→ {event.comment}</p>
                 )}
               </div>
             ))}
@@ -137,6 +144,7 @@ export default function TeacherJobsBoard({
   isSchool = false,
 }) {
   const dispatch = useDispatch()
+  const { isDark } = useTheme()
   const summaries = useSelector(summariesSelector)
   const { user } = useSelector(selectAuth)
   const activeJobId = useSelector(activeSelector)
@@ -223,17 +231,10 @@ export default function TeacherJobsBoard({
       <div className="flex flex-1 min-h-0">
         <AppSidebar />
         <SidebarInset>
-          <div className="px-6 py-6 space-y-6 text-white">
+          <div className={`px-6 py-6 space-y-6 ${isDark ? 'text-white' : 'text-black'}`}>
             <header className="space-y-2">
               <h1 className="text-2xl font-semibold">{title}</h1>
-              <p className="text-sm text-white/70">{description}</p>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/30 border border-blue-500/30 text-blue-300 text-xs font-medium">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                View Only - Monitoring Mode
-              </div>
+              <p className={`text-sm ${isDark ? 'text-white/70' : 'text-gray-600'}`}>{description}</p>
             </header>
 
             {/* Header with create button for schools (and education managers) */}
@@ -242,7 +243,12 @@ export default function TeacherJobsBoard({
                 <button
                   type="button"
                   onClick={() => setCreateOpen(true)}
-                  className="rounded-md border border-slate-700 px-3 py-2 bg-transparent text-white hover:bg-slate-900/60"
+                  style={{
+                    backgroundColor: isDark ? 'transparent' : 'black',
+                    color: isDark ? 'white' : 'white',
+                    borderColor: isDark ? 'rgb(51 65 85)' : 'black'
+                  }}
+                  className="rounded-md border px-3 py-2 hover:opacity-80 transition-opacity"
                 >
                   Add new posting
                 </button>
@@ -250,20 +256,20 @@ export default function TeacherJobsBoard({
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <StatChip icon={Briefcase} label="Active Postings" value={aggregate.totalJobs} tone="accent" />
-              <StatChip icon={Users} label="Total Applicants" value={aggregate.totalApplicants} />
-              <StatChip icon={CheckCircle2} label="Selected" value={aggregate.selected} tone="success" />
-              <StatChip icon={Activity} label="Offers Sent" value={aggregate.offers} tone="warning" />
+              <StatChip icon={Briefcase} label="Active Postings" value={aggregate.totalJobs} tone="accent" isDark={isDark} />
+              <StatChip icon={Users} label="Total Applicants" value={aggregate.totalApplicants} isDark={isDark} />
+              <StatChip icon={CheckCircle2} label="Selected" value={aggregate.selected} tone="success" isDark={isDark} />
+              <StatChip icon={Activity} label="Offers Sent" value={aggregate.offers} tone="warning" isDark={isDark} />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              <Card className="bg-slate-950/60 border-slate-800 xl:col-span-1">
+              <Card className={`xl:col-span-1 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-gray-200'}`}>
                 <CardHeader>
-                  <CardTitle className="text-base text-white">{listLabel}</CardTitle>
+                  <CardTitle className={`text-base ${isDark ? 'text-white' : 'text-black'}`}>{listLabel}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {filteredSummaries.length === 0 ? (
-                    <p className="text-sm text-white/60">No job postings yet.</p>
+                    <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>No job postings yet.</p>
                   ) : (
                     filteredSummaries.map((job) => {
                       const isActive = job.jobId === activeJobId
@@ -276,18 +282,20 @@ export default function TeacherJobsBoard({
                           className={`w-full rounded-2xl border px-4 py-4 text-left transition-all ${
                             isActive
                               ? 'border-blue-500 bg-blue-500/10 shadow-lg'
-                              : 'border-slate-800 bg-slate-950/70 hover:border-blue-500/40 hover:bg-slate-900'
+                              : isDark
+                                ? 'border-slate-800 bg-slate-950/70 hover:border-blue-500/40 hover:bg-slate-900'
+                                : 'border-gray-200 bg-white hover:border-blue-500/40 hover:bg-gray-50'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <p className="text-sm font-semibold text-white">{job.jobTitle}</p>
-                              <p className="text-xs text-white/60">{job.company}</p>
-                              <p className="text-[11px] text-white/50 mt-1">{job.jobType} • Posted {job.postedOn}</p>
+                              <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-black'}`}>{job.jobTitle}</p>
+                              <p className={`text-xs ${isDark ? 'text-white/60' : 'text-gray-600'}`}>{job.company}</p>
+                              <p className={`text-[11px] mt-1 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{job.jobType} • Posted {job.postedOn}</p>
                             </div>
                             <Badge tone="accent">{summary.total} applicants</Badge>
                           </div>
-                          <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-white/70">
+                          <div className={`mt-3 grid grid-cols-3 gap-2 text-[11px] ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
                             <span>Selected: {summary.selected}</span>
                             <span>Offers: {summary.offers}</span>
                             <span>In pipeline: {summary.inProcess}</span>
@@ -299,11 +307,11 @@ export default function TeacherJobsBoard({
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-950/60 border-slate-800 xl:col-span-2">
+              <Card className={`xl:col-span-2 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-gray-200'}`}>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="text-base text-white">{activeJob && (!jobType || activeJob.jobType === jobType) ? activeJob.jobTitle : 'Select a posting'}</CardTitle>
-                    <p className="text-xs text-white/60">
+                    <CardTitle className={`text-base ${isDark ? 'text-white' : 'text-black'}`}>{activeJob && (!jobType || activeJob.jobType === jobType) ? activeJob.jobTitle : 'Select a posting'}</CardTitle>
+                    <p className={`text-xs ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
                       {activeJob && (!jobType || activeJob.jobType === jobType)
                         ? `${activeJob.company} • ${activeJob.location}`
                         : 'Choose a posting to view details'}
@@ -313,15 +321,15 @@ export default function TeacherJobsBoard({
                 <CardContent className="space-y-6">
                   <section>
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-white">Students in review</h3>
+                      <h3 className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-black'}`}>Students in review</h3>
                       <Badge tone="warning">{pendingApplicants.length} in progress</Badge>
                     </div>
                     {pendingApplicants.length === 0 ? (
-                      <p className="text-sm text-white/60">No students awaiting review right now.</p>
+                      <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>No students awaiting review right now.</p>
                     ) : (
                       <div className="grid gap-3 md:grid-cols-2">
                         {pendingApplicants.map((applicant) => (
-                          <ApplicantRow key={applicant.id} applicant={applicant} />
+                          <ApplicantRow key={applicant.id} applicant={applicant} isDark={isDark} />
                         ))}
                       </div>
                     )}
@@ -329,15 +337,15 @@ export default function TeacherJobsBoard({
 
                   <section>
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-white">Selected students</h3>
+                      <h3 className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-black'}`}>Selected students</h3>
                       <Badge tone="success">{selectedApplicants.length} selected</Badge>
                     </div>
                     {selectedApplicants.length === 0 ? (
-                      <p className="text-sm text-white/60">No students selected yet.</p>
+                      <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>No students selected yet.</p>
                     ) : (
                       <div className="grid gap-3 md:grid-cols-2">
                         {selectedApplicants.map((applicant) => (
-                          <ApplicantRow key={applicant.id} applicant={applicant} />
+                          <ApplicantRow key={applicant.id} applicant={applicant} isDark={isDark} />
                         ))}
                       </div>
                     )}

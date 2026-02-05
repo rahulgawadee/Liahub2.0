@@ -33,21 +33,30 @@ import {
 import { buildProgrammeOptions } from '@/lib/programmeOptions'
 import { Input } from '@/Components/ui/input'
 import { Button } from '@/Components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/Components/ui/card'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/Components/ui/dialog'
 import { Label } from '@/Components/ui/label'
 import { Select, SelectOption } from '@/Components/ui/select'
 import { Avatar, AvatarImage, AvatarFallback } from '@/Components/ui/avatar'
-import { Search, Upload, FileSpreadsheet, Edit, Trash2, Eye, User, GraduationCap, Users, BookOpen, Shield, Building2, Briefcase, Building, Filter, X, ChevronDown, ArrowRight, Loader2, UserPlus } from 'lucide-react'
+import { Search, Upload, FileSpreadsheet, Edit, Trash2, Eye, User, GraduationCap, Users, BookOpen, Shield, Building2, Briefcase, Building, Filter, X, ChevronDown, ArrowRight, Loader2, UserPlus, Copy, Check, Download } from 'lucide-react'
 import apiClient from '@/lib/apiClient'
 import VerificationBadge from '@/Components/shared/VerificationBadge'
 import { getImageUrl } from '@/lib/imageUtils'
 import { StatusCard } from '@/Components/ui/status-card'
 import RowHoverShiftControls from '@/Components/table/RowHoverShiftControls'
+import { useTheme } from '@/hooks/useTheme'
 
 const STATUS_CLASSES = {
-  Active: 'bg-emerald-500/15 text-emerald-300',
-  Inactive: 'bg-slate-500/15 text-slate-300',
-  Pending: 'bg-amber-500/15 text-amber-300',
+  dark: {
+    Active: 'bg-emerald-500/15 text-emerald-300',
+    Inactive: 'bg-slate-500/15 text-slate-300',
+    Pending: 'bg-amber-500/15 text-amber-300',
+  },
+  light: {
+    Active: 'bg-emerald-100 text-emerald-800',
+    Inactive: 'bg-gray-100 text-gray-800',
+    Pending: 'bg-amber-100 text-amber-800',
+  }
 }
 
 const COMPANY_QUALITY_THEME = {
@@ -87,8 +96,9 @@ const getCompanyRowTheme = (row) => {
 }
 
 const StatusPill = ({ status }) => {
-  const classes = STATUS_CLASSES[status] || STATUS_CLASSES.Inactive
-  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${classes}`}>{status || 'Unknown'}</span>
+  const { isDark } = useTheme()
+  const classes = STATUS_CLASSES[isDark ? 'dark' : 'light'][status] || STATUS_CLASSES[isDark ? 'dark' : 'light'].Inactive
+  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors duration-300 ${classes}`}>{status || 'Unknown'}</span>
 }
 
 const normalizeProgrammeValue = (value) => {
@@ -131,7 +141,7 @@ const renderCellContent = (column, row, onNavigate) => {
     const isMyStudentsName = column.key === 'name' && row.sectionKey === SECTION_KEYS.myStudents
     const isCompanyBusiness =
       column.key === 'business' &&
-      (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)
+      (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadingCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)
     const isStudentsPlacement = column.key === 'placement' && row.sectionKey === SECTION_KEYS.students
 
     if (isStudentsName || isMyStudentsName || isCompanyBusiness || isStudentsPlacement) {
@@ -246,7 +256,7 @@ const renderCellContent = (column, row, onNavigate) => {
   }
 
   // Show verification badge for company business name if verified
-  if (column.key === 'business' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)) {
+  if (column.key === 'business' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadingCompanies || row.sectionKey === SECTION_KEYS.liahubCompanies)) {
     const verified = row.verified || row.contractSigned
     
     if (column.showAvatar && column.linkToProfile) {
@@ -296,7 +306,7 @@ const renderCellContent = (column, row, onNavigate) => {
   }
 
   // Show contact person avatar in company sections
-  if (column.key === 'contactPerson' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadCompanies)) {
+  if (column.key === 'contactPerson' && (row.sectionKey === SECTION_KEYS.companies || row.sectionKey === SECTION_KEYS.leadingCompanies)) {
     if (column.showAvatar && column.linkToProfile) {
       const contactId = row.contactPersonId || row._id
       const imageUrl = row.contactPersonImage || row.contactImage || row.avatarUrl || row.profileImage || row.avatar
@@ -349,6 +359,7 @@ export default function DataTable() {
   const active = useSelector(selectActiveSection)
   const dashboardStatus = useSelector(selectDashboardStatus)
   const { user } = useSelector(selectAuth)
+  const { isDark } = useTheme()
   const educationManagersState = useSelector(selectSectionData(SECTION_KEYS.educationManagers))
   const entity = user?.entity || null
   const roles = user?.roles || []
@@ -399,7 +410,7 @@ export default function DataTable() {
       if (key === SECTION_KEYS.myStudents) return false
       // "All Students" is shown as a toggle under Students, not as a top-level tab.
       if (key === SECTION_KEYS.allStudents) return false
-      if (normalizedEntity === 'company' && (key === SECTION_KEYS.companies || key === SECTION_KEYS.leadCompanies)) {
+      if (normalizedEntity === 'company' && (key === SECTION_KEYS.companies || key === SECTION_KEYS.leadingCompanies)) {
         return false
       }
       if (normalizedEntity === 'company' && key === SECTION_KEYS.liahubCompanies) {
@@ -1003,7 +1014,7 @@ export default function DataTable() {
         }
         
         // Check if adding a company to trigger contract creation
-        const isCompanySection = editorSectionKeySafe === SECTION_KEYS.companies || editorSectionKeySafe === SECTION_KEYS.leadCompanies
+        const isCompanySection = editorSectionKeySafe === SECTION_KEYS.companies || editorSectionKeySafe === SECTION_KEYS.leadingCompanies
         
         if (isCompanySection) {
           try {
@@ -1443,7 +1454,9 @@ export default function DataTable() {
                 className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
                   active === SECTION_KEYS.allStudents
                     ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
-                    : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                    : isDark
+                      ? 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                      : 'bg-white text-black border-gray-300 hover:border-blue-400/50 hover:bg-gray-100'
                 }`}
               >
                 All students
@@ -1456,7 +1469,9 @@ export default function DataTable() {
                   className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
                     active === SECTION_KEYS.myStudents
                       ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
-                      : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                      : isDark
+                        ? 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                        : 'bg-white text-black border-gray-300 hover:border-blue-400/50 hover:bg-gray-100'
                   }`}
                 >
                   My students
@@ -1469,7 +1484,9 @@ export default function DataTable() {
                 className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
                   active === SECTION_KEYS.students
                     ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
-                    : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                    : isDark
+                      ? 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                      : 'bg-white text-black border-gray-300 hover:border-blue-400/50 hover:bg-gray-100'
                 }`}
               >
                 Assigned
@@ -1499,8 +1516,12 @@ export default function DataTable() {
         />
 
         {active === SECTION_KEYS.companies && companiesProgrammeChips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0a0a0a] rounded-xl border border-white/10">
-            <span className="text-sm font-semibold text-white/80 flex items-center gap-2">
+          <div className={`flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl border transition-colors duration-300 ${
+            isDark ? 'bg-[#0a0a0a] border-white/10' : 'bg-gray-50 border-gray-200'
+          }`}>
+            <span className={`text-sm font-semibold flex items-center gap-2 transition-colors duration-300 ${
+              isDark ? 'text-white/80' : 'text-black'
+            }`}>
               <Filter className="h-4 w-4" />
               Filter by programme:
             </span>
@@ -1515,7 +1536,9 @@ export default function DataTable() {
                     className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
                       selected
                         ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
-                        : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                        : isDark
+                          ? 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                          : 'bg-white text-black border-gray-300 hover:border-blue-400/50 hover:bg-gray-100'
                     }`}
                   >
                     {chip.label}
@@ -1526,7 +1549,11 @@ export default function DataTable() {
                 <button
                   type="button"
                   onClick={() => setCompaniesProgrammeFilter('')}
-                  className="rounded-full border px-4 py-1.5 text-xs font-medium text-white/60 border-white/20 hover:text-white hover:border-red-400/50 hover:bg-red-500/10 transition-all flex items-center gap-1.5"
+                  className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    isDark
+                      ? 'text-white/60 border-white/20 hover:text-white hover:border-red-400/50 hover:bg-red-500/10'
+                      : 'text-gray-600 border-gray-300 hover:text-red-600 hover:border-red-400 hover:bg-red-50'
+                  }`}
                 >
                   <X className="h-3 w-3" />
                   Clear
@@ -1537,8 +1564,12 @@ export default function DataTable() {
         )}
 
         {(isSchoolAdmin || isEducationManager) && active === SECTION_KEYS.liahubCompanies && liahubProgrammeChips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0a0a0a] rounded-xl border border-white/10">
-            <span className="text-sm font-semibold text-white/80 flex items-center gap-2">
+          <div className={`flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl border transition-colors duration-300 ${
+            isDark ? 'bg-[#0a0a0a] border-white/10' : 'bg-gray-50 border-gray-200'
+          }`}>
+            <span className={`text-sm font-semibold flex items-center gap-2 transition-colors duration-300 ${
+              isDark ? 'text-white/80' : 'text-black'
+            }`}>
               <Filter className="h-4 w-4" />
               Filter by programme:
             </span>
@@ -1553,7 +1584,9 @@ export default function DataTable() {
                     className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
                       selected
                         ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
-                        : 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                        : isDark
+                          ? 'bg-white/5 text-white/70 border-white/20 hover:border-blue-400/50 hover:bg-white/10'
+                          : 'bg-white text-black border-gray-300 hover:border-blue-400/50 hover:bg-gray-100'
                     }`}
                   >
                   {chip.label}
@@ -1564,7 +1597,11 @@ export default function DataTable() {
               <button
                 type="button"
                 onClick={() => setLiahubProgrammeFilter('')}
-                className="rounded-full border px-4 py-1.5 text-xs font-medium text-white/60 border-white/20 hover:text-white hover:border-red-400/50 hover:bg-red-500/10 transition-all flex items-center gap-1.5"
+                className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all flex items-center gap-1.5 ${
+                  isDark
+                    ? 'text-white/60 border-white/20 hover:text-white hover:border-red-400/50 hover:bg-red-500/10'
+                    : 'text-gray-600 border-gray-300 hover:text-red-600 hover:border-red-400 hover:bg-red-50'
+                }`}
               >
                 <X className="h-3 w-3" />
                 Clear
@@ -1597,33 +1634,35 @@ export default function DataTable() {
                   : 'No data available for this section yet.'}
             </div>
           ) : (
-            <div ref={scrollContainerRef} className="overflow-x-auto rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] bg-[#0a0a0a] border border-[#0a0a0a]">
-              <table className="w-full min-w-[720px] table-auto text-sm">
-                <thead className="text-xs uppercase tracking-wider bg-[#0a0a0a] border-b border-white/10">
+            <div ref={scrollContainerRef} className={`overflow-x-auto rounded-2xl border transition-colors duration-300 ${isDark ? 'bg-black/50 border-gray-800' : 'bg-white border-gray-200'}`}>
+              <table className={`w-full min-w-[720px] table-auto text-sm transition-colors duration-300 ${isDark ? 'text-white' : 'text-black'}`}>
+                <thead className={`text-xs uppercase tracking-wider border-b transition-colors duration-300 ${isDark ? 'bg-black/50 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
                   <tr className="h-12">
-                    <th className="sticky left-0 z-20 w-10 bg-[#0a0a0a] px-1" aria-hidden="true" />
+                    <th className={`sticky left-0 z-20 w-10 px-1 transition-colors duration-300 ${isDark ? 'bg-black/50' : 'bg-gray-50'}`} aria-hidden="true" />
                     {(active === SECTION_KEYS.companies || active === SECTION_KEYS.liahubCompanies) && (
                       <th className="w-2 px-0" aria-hidden="true" />
                     )}
                     {columns.map((column) => (
-                      <th key={column.key} className="px-3 text-left font-bold text-white">
+                      <th key={column.key} className={`px-3 text-left font-bold transition-colors duration-300 ${isDark ? 'text-white' : 'text-black'}`}>
                         <div className="flex items-center gap-2">
                           {column.label}
                         </div>
                       </th>
                     ))}
                     {(allowEdit || isEducationManagerSection || active === SECTION_KEYS.liahubCompanies || (active === SECTION_KEYS.myStudents && isEducationManager)) && (
-                      <th className="px-3 text-left font-bold text-white">
+                      <th className={`px-3 text-left font-bold transition-colors duration-300 ${isDark ? 'text-white' : 'text-black'}`}>
                         <div className="flex items-center gap-2">
                           <Shield className="h-3.5 w-3.5" />
                           Actions
                         </div>
                       </th>
                     )}
-                    <th className="sticky right-0 z-20 w-10 bg-[#0a0a0a] px-1" aria-hidden="true" />
+                    <th className={`sticky right-0 z-20 w-10 px-1 transition-colors duration-300 ${
+                      isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'
+                    }`} aria-hidden="true" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/10">
+                <tbody className={`divide-y transition-colors duration-300 ${isDark ? 'divide-white/10 bg-black/50' : 'divide-gray-200 bg-white'}`}>
                   {visibleRows.map((row) => {
                     const rowWithSectionKey = row?.sectionKey ? row : { ...row, sectionKey: active }
                     const isSelfEducationManager = isEducationManagerSection && loggedInUserId && String(row.id) === loggedInUserId
@@ -1635,7 +1674,7 @@ export default function DataTable() {
                     return (
                     <tr
                       key={row.id}
-                      className="h-14 transition-all hover:bg-white/5 cursor-pointer group bg-[#0a0a0a]"
+                      className={`h-14 transition-all cursor-pointer group ${isDark ? 'bg-black/50 hover:bg-white/5' : 'bg-white hover:bg-gray-50'}`}
                       style={companyTheme ? { backgroundImage: companyTheme.gradient } : undefined}
                       onClick={(e) => {
                         if (e.target.closest('[data-no-detail-on-click]')) return
@@ -1645,7 +1684,7 @@ export default function DataTable() {
                       }}
                       >
                         <td
-                        className="sticky left-0 z-10 w-10 bg-[#0a0a0a] px-1 align-middle"
+                        className={`sticky left-0 z-10 w-10 px-1 align-middle transition-colors duration-300 ${isDark ? 'bg-black/50' : 'bg-white'}`}
                           data-no-detail-on-click
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
@@ -1674,7 +1713,7 @@ export default function DataTable() {
                           >
                             <div className="absolute inset-0" />
                             {companyTheme?.label ? (
-                              <div className="pointer-events-none absolute left-3 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/85 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                              <div className={`pointer-events-none absolute left-3 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border px-2 py-1 text-xs font-medium opacity-0 shadow-lg transition-opacity group-hover:opacity-100 ${isDark ? 'border-white/10 bg-black/85 text-white' : 'border-gray-300 bg-white text-black'}`}>
                                 {companyTheme.label}
                               </div>
                             ) : null}
@@ -1683,14 +1722,16 @@ export default function DataTable() {
                       )}
                       {columns.map((column) => {
                         const title = buildTitle(column, rowWithSectionKey)
-                        const cellClasses = ['px-3 py-2.5 align-middle']
+                        const cellClasses = ['px-3 py-2.5 align-middle', `transition-colors duration-300 ${isDark ? 'text-white' : 'text-black'}`]
                         if (column.grow) cellClasses.push('max-w-[280px] whitespace-normal break-words')
                         else cellClasses.push('max-w-[240px] whitespace-nowrap overflow-hidden text-ellipsis')
 
                         return (
                           <td key={column.key} className={cellClasses.join(' ')} title={title}>
                             <div className="flex items-center gap-2.5">
-                              <div className="min-w-0 flex-1 text-sm leading-relaxed text-white font-medium">
+                              <div className={`min-w-0 flex-1 text-sm leading-relaxed font-medium transition-colors duration-300 ${
+                                isDark ? 'text-white' : 'text-black'
+                              }`}>
                                 {renderCellContent(column, rowWithSectionKey)}
                               </div>
                             </div>
@@ -1736,7 +1777,9 @@ export default function DataTable() {
                       )}
 
                       <td
-                        className="sticky right-0 z-10 w-10 bg-[#0a0a0a] px-1 align-middle"
+                        className={`sticky right-0 z-10 w-10 px-1 align-middle transition-colors duration-300 ${
+                          isDark ? 'bg-[#0a0a0a]' : 'bg-white'
+                        }`}
                         data-no-detail-on-click
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
@@ -1844,7 +1887,7 @@ export default function DataTable() {
 
       <Dialog open={programmeDialogOpen} onOpenChange={setProgrammeDialogOpen} allowOverflow>
         <DialogContent className="w-full max-w-md mx-auto text-left">
-          <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+          <div className={`rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)] ${isDark ? 'bg-[#0a0a0a] border border-white/10' : 'bg-white border border-gray-200'}`} >
             <DialogHeader>
               <DialogTitle className="text-base font-semibold text-white">Select programme</DialogTitle>
               <DialogClose onClick={() => setProgrammeDialogOpen(false)} />
@@ -1901,6 +1944,7 @@ function Toolbar({
   filterDropdownOpen = false,
   onFilterDropdownToggle = () => {}
 }) {
+  const { isDark } = useTheme()
   const hasFilter = search.trim().length > 0 || programmeFilter
   const [programmeSearch, setProgrammeSearch] = React.useState('')
   const dropdownRef = React.useRef(null)
@@ -1983,22 +2027,34 @@ function Toolbar({
               )}
             </Button>
             {filterDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-72 rounded-xl border border-white/10 bg-[#0a0a0a] shadow-xl z-50 overflow-hidden">
-                <div className="p-3 border-b border-white/10 bg-[#0a0a0a]">
+              <div className={`absolute right-0 mt-2 w-72 rounded-xl border shadow-xl z-50 overflow-hidden transition-colors duration-300 ${
+                isDark ? 'border-white/10 bg-[#0a0a0a]' : 'border-gray-200 bg-white'
+              }`}>
+                <div className={`p-3 border-b transition-colors duration-300 ${
+                  isDark ? 'border-white/10 bg-[#0a0a0a]' : 'border-gray-200 bg-gray-50'
+                }`}>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/60" />
+                    <Search className={`absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 transition-colors duration-300 ${
+                      isDark ? 'text-white/60' : 'text-gray-400'
+                    }`} />
                     <Input
                       value={programmeSearch}
                       onChange={(e) => setProgrammeSearch(e.target.value)}
                       placeholder="Search programmes..."
-                      className="h-9 rounded-lg pl-9 text-sm bg-[#0a0a0a] border-white/10 text-white placeholder:text-white/40"
+                      className={`h-9 rounded-lg pl-9 text-sm transition-colors duration-300 ${
+                        isDark
+                          ? 'bg-[#0a0a0a] border-white/10 text-white placeholder:text-white/40'
+                          : 'bg-white border-gray-300 text-black placeholder:text-gray-400'
+                      }`}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {filteredProgrammes.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-sm text-white/40">
+                    <div className={`px-4 py-8 text-center text-sm transition-colors duration-300 ${
+                      isDark ? 'text-white/40' : 'text-gray-400'
+                    }`}>
                       No programmes found
                     </div>
                   ) : (
@@ -2012,10 +2068,12 @@ function Toolbar({
                             onFilterDropdownToggle(false)
                             setProgrammeSearch('')
                           }}
-                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5 flex items-center gap-2 ${
+                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${
                             programmeFilter === prog
                               ? 'bg-blue-500/20 text-blue-400 font-semibold'
-                              : 'text-white'
+                              : isDark
+                                ? 'text-white hover:bg-white/5'
+                                : 'text-black hover:bg-gray-100'
                           }`}
                         >
                           <BookOpen className="h-4 w-4 shrink-0" />
@@ -2042,7 +2100,21 @@ function Toolbar({
           </Button>
         )}
         {allowAdd && (
-          <Button type="button" onClick={onAdd} className="sm:w-auto gap-2">
+          <Button 
+            type="button" 
+            onClick={onAdd} 
+            style={{
+              backgroundColor: isDark ? 'white' : 'black',
+              color: isDark ? 'black' : 'white'
+            }}
+            className="sm:w-auto gap-2"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = isDark ? '#f3f4f6' : '#1f2937'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isDark ? 'white' : 'black'
+            }}
+          >
             <GraduationCap className="h-4 w-4" />
             Add new
           </Button>
@@ -2192,6 +2264,7 @@ function RecordEditorDialog({
   refreshCompaniesList = () => {},
   educationManagersList = [],
 }) {
+  const { isDark } = useTheme()
   const title = mode === 'edit' ? `Edit ${definition?.singularLabel || 'record'}` : `Add ${definition?.singularLabel || 'record'}`
   const [companySearch, setCompanySearch] = useState('')
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false)
@@ -2230,7 +2303,7 @@ function RecordEditorDialog({
             <div className="grid gap-4 md:grid-cols-2">
               {formFields.map((field) => {
                 // When editing/adding students, render company picker UI for the companySelect field
-                if (definition?.recordType === 'student' && field.key === 'companySelect') {
+                if ((definition?.recordType === 'student' || definition?.recordType === 'liahub_company') && field.key === 'companySelect') {
                   const selectedCompany = companiesList.find(c => (c.id || c._id) === values.companySelect)
                   return (
                     <div key={field.key} className="md:col-span-2 flex flex-col gap-3">
@@ -2251,13 +2324,13 @@ function RecordEditorDialog({
                                 value={companySearch}
                                 onChange={(e) => setCompanySearch(e.target.value)}
                                 onFocus={() => setIsCompanyDropdownOpen(true)}
-                                className="h-11 w-full pl-10 pr-4 rounded-lg  bg-[#0a0a0a] text-white placeholder:text-white/40 focus:outline-none transition-all shadow-sm"
+                                className={`h-11 w-full pl-10 pr-4 rounded-lg focus:outline-none transition-all shadow-sm ${isDark ? 'bg-[#0a0a0a] text-white placeholder:text-white/40' : 'bg-white text-black placeholder:text-gray-400'}` }
                               />
                             </div>
                             
                             {/* Dropdown List */}
                             {isCompanyDropdownOpen && (
-                              <div className="absolute z-50 w-full mt-2 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#0a0a0a] shadow-xl">
+                              <div className={`absolute z-50 w-full mt-2 max-h-64 overflow-y-auto rounded-lg shadow-xl ${isDark ? 'border border-white/10 bg-[#0a0a0a]' : 'border border-gray-200 bg-white'}`}>
                                 {filteredCompanies.length === 0 ? (
                                   <div className="px-4 py-6 text-center text-white/40 text-sm">
                                     {companiesList.length === 0 ? (
@@ -2311,16 +2384,16 @@ function RecordEditorDialog({
                             type="button" 
                             variant="outline"
                             size="icon"
-                            className="h-11 w-11 shrink-0 bg-[#0a0a0a] border-white/10 hover:bg-white/5 hover:border-primary transition-all"
+                            className={`h-11 w-11 shrink-0 transition-all ${isDark ? 'bg-[#0a0a0a] border-white/10 hover:bg-white/5 hover:border-primary' : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-primary'}`}
                             onClick={refreshCompaniesList}
                             title="Refresh companies list"
                           >
-                            <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className={`h-4 w-4 ${isDark ? 'text-white' : 'text-blue-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           </Button>
                         </div>
-                        {selectedCompany && (
+                        {definition?.recordType === 'student' && selectedCompany && (
                           <div className="rounded-xl bg-gradient-to-br from-emerald-500/10 via-primary/5 to-blue-500/10 border border-emerald-400/20 p-4 shadow-lg">
                             <div className="flex items-start gap-3">
                               <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 to-primary/20 p-2.5 shadow-inner">
@@ -2508,7 +2581,7 @@ function RecordEditorDialog({
             </div>
 
             {/* Company status tag for company-like records */}
-            {['company','lead_company','liahub_company'].includes(definition?.recordType) && (
+            {['company','lead_company'].includes(definition?.recordType) && (
               <div className="mt-2">
                 <div className="flex flex-col gap-2">
                   <Label>Company status</Label>
@@ -2526,10 +2599,10 @@ function RecordEditorDialog({
             {error ? <div className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <Button type="button" variant="ghost" onClick={onCancel} disabled={submitting}>
+              <Button type="button" variant="ghost" onClick={onCancel} disabled={submitting} style={{ backgroundColor: isDark ? undefined : 'lightgray', color: isDark ? undefined : 'black' }}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting} style={{ backgroundColor: isDark ? undefined : 'black', color: isDark ? undefined : 'white' }} style={{ backgroundColor: isDark ? undefined : 'black', color: isDark ? undefined : 'white' }}>
                 {submitting ? 'Saving…' : 'Save changes'}
               </Button>
             </div>
@@ -2545,6 +2618,93 @@ function ExcelUploadDialog({ open, onClose, onFileChange, uploading, result, fil
   const dialogTitle = uploadConfig?.title || 'Upload Data (Excel)'
   const extraNote = uploadConfig?.note || ''
 
+  let apiOrigin = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  try {
+    const base = apiClient?.defaults?.baseURL
+    if (base) apiOrigin = new URL(base).origin
+  } catch (e) {
+    // ignore (fallback to env/default)
+  }
+  const templatePath = uploadConfig?.templatePath || ''
+  const templateUrl = templatePath ? `${apiOrigin}${templatePath.startsWith('/') ? templatePath : `/${templatePath}`}` : ''
+
+  const [dragActive, setDragActive] = React.useState(false)
+  const [copied, setCopied] = React.useState(false)
+
+  const derived = React.useMemo(() => {
+    const data = result?.data || null
+    const summary = data?.summary || null
+    const successful = summary?.successful ?? data?.successCount ?? 0
+    const failed = summary?.failed ?? data?.failedCount ?? 0
+    const totalRows = summary?.totalRows ?? (Number(successful) + Number(failed))
+    const failures = data?.failedRecords || data?.failures || []
+    const successes = data?.successRecords || data?.successes || []
+
+    return {
+      data,
+      successful,
+      failed,
+      totalRows,
+      failures: Array.isArray(failures) ? failures : [],
+      successes: Array.isArray(successes) ? successes : [],
+    }
+  }, [result])
+
+  const copyColumns = React.useCallback(async () => {
+    const text = expectedColumns.join('\n')
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.setAttribute('readonly', '')
+        textarea.style.position = 'absolute'
+        textarea.style.left = '-9999px'
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch (e) {
+      console.error('Failed to copy columns', e)
+    }
+  }, [expectedColumns])
+
+  const triggerUpload = React.useCallback((file) => {
+    if (!file) return
+    onFileChange({ target: { files: [file] } })
+  }, [onFileChange])
+
+  const onDrop = React.useCallback((event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setDragActive(false)
+    if (uploading) return
+    const file = event.dataTransfer?.files?.[0]
+    if (!file) return
+    triggerUpload(file)
+  }, [triggerUpload, uploading])
+
+  const onBrowseClick = React.useCallback(() => {
+    if (uploading) return
+    fileInputRef?.current?.click?.()
+  }, [fileInputRef, uploading])
+
+  const renderFailureLabel = (failure) => {
+    if (!failure) return 'Record'
+    return (
+      failure.name ||
+      failure.email ||
+      failure.business ||
+      failure.company ||
+      failure.studentName ||
+      'Record'
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-3xl mx-auto">
@@ -2554,89 +2714,180 @@ function ExcelUploadDialog({ open, onClose, onFileChange, uploading, result, fil
         </DialogHeader>
         <DialogBody>
           <div className="space-y-6">
-            {/* Instructions */}
-            <div className="rounded-2xl bg-muted/50 p-4">
-              <h4 className="mb-2 font-semibold text-sm flex items-center gap-2">
-                <FileSpreadsheet className="h-4 w-4" />
-                Excel File Requirements
-              </h4>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>• Upload .xlsx or .xls files only</li>
-                <li>• First row must contain column headers</li>
-                <li>• Maximum file size: 10MB</li>
-              </ul>
-            </div>
-
-            {/* Swedish Column Names */}
-            <div className="rounded-2xl bg-muted/30 p-4">
-              <h4 className="mb-3 font-semibold text-sm">Expected Column Names:</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {expectedColumns.map((col, idx) => (
-                  <div key={idx} className="rounded-lg bg-background/60 px-3 py-2 font-mono">
-                    {col}
-                  </div>
-                ))}
-              </div>
-              {extraNote ? <p className="mt-3 text-xs text-muted-foreground">{extraNote}</p> : null}
-            </div>
-
-            {/* File Input */}
-            <div className="space-y-3">
-              <Label htmlFor="excel-file-input">Select Excel File</Label>
-              <Input
-                ref={fileInputRef}
-                id="excel-file-input"
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={onFileChange}
-                disabled={uploading}
-                className="cursor-pointer"
-              />
-            </div>
-
-            {/* Upload Status */}
-            {uploading && (
-              <div className="flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/60 border-t-transparent" />
-                <span>Uploading and processing Excel file...</span>
-              </div>
-            )}
-
-            {/* Upload Result */}
-            {result && !uploading && (
-              <div className={`rounded-2xl px-4 py-4 text-sm ${
-                result.success ? 'bg-emerald-500/10 text-emerald-300' : 'bg-destructive/10 text-destructive'
-              }`}>
-                {result.success ? (
-                  <div className="space-y-3">
-                    <div className="font-semibold">✓ Upload Successful!</div>
-                    <div className="space-y-1 text-xs">
-                      <div>Total rows processed: {result.data?.summary?.totalRows || 0}</div>
-                      <div>Successfully added: {result.data?.summary?.successful || 0}</div>
-                      <div>Failed: {result.data?.summary?.failed || 0}</div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card className="rounded-2xl">
+                <CardHeader className="space-y-1">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Upload Excel
+                  </CardTitle>
+                  <CardDescription>
+                    Drag & drop a file here, or browse to upload.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div
+                    className={`rounded-2xl border-2 border-dashed p-5 transition-colors ${
+                      dragActive ? 'border-primary bg-primary/5' : 'border-border/60 bg-muted/20'
+                    } ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
+                    onDragEnter={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragActive(true)
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragActive(true)
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragActive(false)
+                    }}
+                    onDrop={onDrop}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') onBrowseClick()
+                    }}
+                    onClick={onBrowseClick}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 rounded-xl bg-primary/10 p-2">
+                        <Upload className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm">Drop your .xlsx / .xls file</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          The upload starts immediately after selection.
+                        </div>
+                      </div>
+                      <Button type="button" variant="outline" onClick={(e) => { e.stopPropagation(); onBrowseClick(); }}>
+                        Browse
+                      </Button>
                     </div>
-                    
-                    {result.data?.failedRecords?.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        <div className="font-semibold text-amber-300">Failed Records:</div>
-                        <div className="max-h-40 space-y-1 overflow-y-auto text-xs">
-                          {result.data.failedRecords.map((record, idx) => (
-                            <div key={idx} className="rounded bg-background/40 p-2">
-                              Row {record.rowNumber}: {record.name} ({record.email}) - {record.error}
+                  </div>
+
+                  <Input
+                    ref={fileInputRef}
+                    id="excel-file-input"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={onFileChange}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+
+                  {templateUrl ? (
+                    <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/30 px-4 py-3">
+                      <div className="text-xs text-muted-foreground">
+                        Use the template to avoid header issues.
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => window.open(templateUrl, '_blank', 'noopener,noreferrer')}
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download template
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {uploading ? (
+                    <div className="flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/60 border-t-transparent" />
+                      <span>Uploading and processing…</span>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl">
+                <CardHeader className="space-y-1">
+                  <CardTitle className="text-sm">Instructions</CardTitle>
+                  <CardDescription>Make sure the file matches these rules.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>• Upload .xlsx or .xls files only</li>
+                    <li>• First row must contain column headers</li>
+                    <li>• Maximum file size: 10MB</li>
+                  </ul>
+                  {extraNote ? (
+                    <div className="rounded-xl bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+                      {extraNote}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="rounded-2xl">
+              <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <CardTitle className="text-sm">Expected column headers</CardTitle>
+                  <CardDescription>Copy/paste these into row 1 of your Excel sheet.</CardDescription>
+                </div>
+                <Button type="button" variant="outline" onClick={copyColumns} className="gap-2">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? 'Copied' : 'Copy list'}
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {expectedColumns.length ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {expectedColumns.map((col, idx) => (
+                      <div key={idx} className="rounded-lg bg-background/60 px-3 py-2 font-mono border border-border/50">
+                        {col}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No fixed columns required for this upload.</div>
+                )}
+              </CardContent>
+            </Card>
+
+            {result && !uploading ? (
+              <Card className={`rounded-2xl border ${result.success ? 'border-emerald-500/30' : 'border-destructive/30'}`}>
+                <CardHeader className="space-y-1">
+                  <CardTitle className="text-sm">
+                    {result.success ? 'Upload complete' : 'Upload failed'}
+                  </CardTitle>
+                  {result.success ? (
+                    <CardDescription>
+                      Processed {derived.totalRows} rows • {derived.successful} added • {derived.failed} failed
+                    </CardDescription>
+                  ) : (
+                    <CardDescription>{result.error}</CardDescription>
+                  )}
+                </CardHeader>
+                {result.success ? (
+                  <CardContent className="space-y-3">
+                    {derived.failures.length ? (
+                      <div className="space-y-2">
+                        <div className="text-xs font-semibold text-amber-500">Failed records</div>
+                        <div className="max-h-56 space-y-1 overflow-y-auto text-xs">
+                          {derived.failures.map((failure, idx) => (
+                            <div key={idx} className="rounded-xl bg-muted/30 p-3">
+                              <div className="font-medium">
+                                Row {failure.rowNumber || '—'}: {renderFailureLabel(failure)}
+                              </div>
+                              <div className="text-muted-foreground mt-1">{failure.error || 'Unknown error'}</div>
                             </div>
                           ))}
                         </div>
                       </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No failures reported.</div>
                     )}
-                  </div>
-                ) : (
-                  <div>
-                    <div className="font-semibold">✗ Upload Failed</div>
-                    <div className="mt-1 text-xs">{result.error}</div>
-                  </div>
-                )}
-              </div>
-            )}
+                  </CardContent>
+                ) : null}
+              </Card>
+            ) : null}
 
             <div className="flex justify-end">
               <Button type="button" variant="ghost" onClick={onClose}>
@@ -2651,6 +2902,7 @@ function ExcelUploadDialog({ open, onClose, onFileChange, uploading, result, fil
 }
 
 function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
+  const { isDark } = useTheme()
   const { user } = useSelector(selectAuth)
   const isAdmin = user?.roles?.some(r => ['school_admin', 'platform_admin', 'university_admin'].includes(r))
   const isReadOnly = definition?.recordType === 'liahub_company' && !isAdmin
@@ -2660,9 +2912,13 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-3xl mx-auto p-0 space-y-0 bg-transparent shadow-none">
-        <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+        <div className={`rounded-2xl border p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)] transition-colors duration-300 ${
+          isDark ? 'bg-[#0a0a0a] border-white/10' : 'bg-white border-gray-200'
+        }`}>
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-white flex items-center gap-2">
+            <DialogTitle className={`text-base font-semibold flex items-center gap-2 transition-colors duration-300 ${
+              isDark ? 'text-white' : 'text-black'
+            }`}>
               {['company', 'lead_company', 'liahub_company'].includes(definition?.recordType) ? (() => {
                 const theme = getCompanyRowTheme(row)
                 if (!theme) return null
@@ -2684,18 +2940,28 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
                 const value = row[column.key]
                 const display = value === null || value === undefined || value === '' ? '—' : formatColumnValue(column, value)
                 return (
-                  <div key={column.key} className="rounded-xl bg-white/5 border border-white/10 p-4 shadow-sm">
-                    <div className="text-xs font-medium text-white/60 uppercase tracking-wide">{column.label}</div>
-                    <div className={`mt-2 text-sm break-words whitespace-pre-wrap leading-snug ${
-                      isReadOnly ? 'text-white/70' : 'text-white'
+                  <div key={column.key} className={`rounded-xl border p-4 shadow-sm transition-colors duration-300 ${
+                    isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className={`text-xs font-medium uppercase tracking-wide transition-colors duration-300 ${
+                      isDark ? 'text-white/60' : 'text-gray-600'
+                    }`}>{column.label}</div>
+                    <div className={`mt-2 text-sm break-words whitespace-pre-wrap leading-snug transition-colors duration-300 ${
+                      isReadOnly 
+                        ? (isDark ? 'text-white/70' : 'text-gray-600') 
+                        : (isDark ? 'text-white' : 'text-black')
                     }`}>{display}</div>
                   </div>
                 )
               })}
               {/* Show status indicator as a field for company records */}
-              {['company', 'lead_company', 'liahub_company'].includes(definition?.recordType) && (
-                <div className="rounded-xl bg-white/5 border border-white/10 p-4 shadow-sm">
-                  <div className="text-xs font-medium text-white/60 uppercase tracking-wide">Company Status</div>
+              {['company', 'lead_company'].includes(definition?.recordType) && (
+                <div className={`rounded-xl border p-4 shadow-sm transition-colors duration-300 ${
+                  isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className={`text-xs font-medium uppercase tracking-wide transition-colors duration-300 ${
+                    isDark ? 'text-white/60' : 'text-gray-600'
+                  }`}>Company Status</div>
                   <div className="mt-2 flex items-center gap-2">
                     {row.quality ? (
                       <>
@@ -2710,12 +2976,16 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
                             />
                           )
                         })()}
-                        <span className="text-sm text-white">
+                        <span className={`text-sm transition-colors duration-300 ${
+                          isDark ? 'text-white' : 'text-black'
+                        }`}>
                           {(getCompanyRowTheme(row)?.label) || 'Company'}
                         </span>
                       </>
                     ) : (
-                      <span className="text-sm text-white/50">Not set</span>
+                      <span className={`text-sm transition-colors duration-300 ${
+                        isDark ? 'text-white/50' : 'text-gray-400'
+                      }`}>Not set</span>
                     )}
                   </div>
                 </div>

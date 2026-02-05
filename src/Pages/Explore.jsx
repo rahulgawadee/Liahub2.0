@@ -23,6 +23,7 @@ import { setActiveChat } from '@/redux/slices/messagesSlice'
 import { followUser as followUserLocal, addFollower } from '@/redux/slices/profileSlice'
 import { Users, Search } from 'lucide-react'
 import api from '@/lib/apiClient'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function Explore(){
   const dispatch = useDispatch()
@@ -31,6 +32,7 @@ export default function Explore(){
   const connections = useSelector(selectConnections)
   const profile = useSelector(selectProfile)
   const { user: authUser } = useSelector(selectAuth)
+  const { isDark } = useTheme()
   const selected = users.selectedUserId
     ? users.entitiesById[users.selectedUserId] || users.results.find((user) => user.id === users.selectedUserId) || null
     : null
@@ -174,7 +176,7 @@ export default function Explore(){
             {/* Header */}
             <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className={isDark ? 'p-2 rounded-lg bg-primary/10 shadow-sm' : 'p-2 rounded-lg bg-gray-50 shadow-sm'}>
                   <Users className="h-7 w-7 text-primary" />
                 </div>
                 <div>
@@ -236,10 +238,13 @@ export default function Explore(){
                 ) : (
                   <>
                     {/* Results Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-sm text-muted-foreground">
-                        Found <span className="font-semibold text-foreground">{directoryResults.length}</span> {directoryResults.length === 1 ? 'profile' : 'profiles'}
-                      </p>
+                    <div className={`flex items-center justify-between mb-4 pb-3 ${isDark ? 'border-b border-gray-800' : 'border-b border-gray-200'}`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`${isDark ? 'bg-gray-800 text-gray-200' : 'bg-gray-100 text-gray-900'} inline-flex items-center px-2 py-0.5 rounded-full text-sm font-semibold`}>{directoryResults.length}</span>
+                        <p className="text-sm text-muted-foreground">
+                          {directoryResults.length === 1 ? 'profile' : 'profiles'} found
+                        </p>
+                      </div>
                     </div>
 
                     {/* Results Grid */}

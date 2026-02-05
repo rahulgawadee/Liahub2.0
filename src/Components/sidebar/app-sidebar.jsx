@@ -8,10 +8,12 @@ import { Link, useLocation } from 'react-router-dom'
 import { getSidebarConfig } from './sidebarConfig'
 import { selectTotalUnreadMessages } from '@/redux/slices/messagesSlice'
 import { selectUnreadNotificationsCount } from '@/redux/slices/notificationsSlice'
+import { useTheme } from '@/hooks/useTheme'
 
 export function AppSidebar(){
   const { user } = useSelector(selectAuth)
   const location = useLocation()
+  const { isDark } = useTheme()
   const { navItems, moreItems } = getSidebarConfig(user)
   const detailsRef = useRef(null)
   const unreadMessages = useSelector(selectTotalUnreadMessages)
@@ -33,7 +35,7 @@ export function AppSidebar(){
   }
 
   return (
-    <Sidebar>
+    <Sidebar className={`transition-colors duration-300 ${isDark ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`}>
     
       <SidebarContent>
         <SidebarMenu>
@@ -43,8 +45,8 @@ export function AppSidebar(){
             const badgeCount = getBadgeCount(item.title)
             return (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild active={isActive}>
-                  <Link to={item.url} className="flex items-center gap-2">
+                <SidebarMenuButton asChild active={isActive} className={`transition-colors duration-300 ${isDark ? 'hover:bg-gray-900' : 'hover:bg-gray-100'}`}>
+                  <Link to={item.url} className={`flex items-center gap-2 transition-colors duration-300 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
                     <Icon className="size-4" />
                     <span>{item.title}</span>
                     {badgeCount > 0 && (
@@ -60,19 +62,19 @@ export function AppSidebar(){
           <SidebarMenuItem>
             <details ref={detailsRef} onToggle={handleDetailsToggle} className="group">
               <summary className="list-none cursor-pointer">
-                <SidebarMenuButton asChild>
-                  <div className="flex items-center gap-2"><MoreHorizontal className="size-4" /><span>More</span></div>
+                <SidebarMenuButton asChild className={`transition-colors duration-300 ${isDark ? 'hover:bg-gray-900' : 'hover:bg-gray-100'}`}>
+                  <div className={`flex items-center gap-2 transition-colors duration-300 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}><MoreHorizontal className="size-4" /><span>More</span></div>
                 </SidebarMenuButton>
               </summary>
-              <div className="mt-1 ml-4 space-y-1">
+              <div className={`mt-1 ml-4 space-y-1 transition-colors duration-300`}>
                 {moreItems.map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.url
                   const badgeCount = getBadgeCount(item.title)
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild active={isActive}>
-                        <Link to={item.url} className="flex items-center gap-2">
+                      <SidebarMenuButton asChild active={isActive} className={`transition-colors duration-300 ${isDark ? 'hover:bg-gray-900' : 'hover:bg-gray-100'}`}>
+                        <Link to={item.url} className={`flex items-center gap-2 transition-colors duration-300 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
                           <Icon className="size-4" />
                           <span>{item.title}</span>
                           {badgeCount > 0 && (

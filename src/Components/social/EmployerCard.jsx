@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { getDisplayNameWithSubtitle } from '@/lib/displayNameUtils'
 import { MapPin, UserPlus, Clock, Check, X, Building2, Briefcase, Globe } from 'lucide-react'
 import { getImageUrl } from '@/lib/imageUtils'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function EmployerCard({
   employer,
@@ -33,13 +34,21 @@ export default function EmployerCard({
   const industry = employer.companyProfile?.industries?.[0] || null
   const website = employer.companyProfile?.website || employer.contact?.website || employer.website || null
 
+  const { isDark } = useTheme()
+
+  const rootClass = cn(
+    'group rounded-lg p-3 transition-colors duration-200 hover:shadow-lg',
+    isDark ? 'bg-background/5 hover:bg-background/10 border border-gray-800' : 'bg-white hover:bg-gray-50 border border-gray-200',
+    className,
+  )
+
   return (
-    <div className={cn('group rounded-lg bg-background/5 p-3 hover:bg-background/10 transition-colors duration-200', className)}>
+    <div className={rootClass}>
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => onVisitProfile?.(employer)} className="outline-none flex-shrink-0">
-          <Avatar className="h-12 w-12 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100">
+          <Avatar className={cn('h-12 w-12 shadow-sm', isDark ? 'bg-gradient-to-br from-slate-700 to-slate-800' : 'bg-gradient-to-br from-gray-50 to-gray-100')}>
             <AvatarImage src={employer.avatarUrl ? getImageUrl(employer.avatarUrl) : undefined} alt={displayName} className="object-cover" />
-            <AvatarFallback className="text-lg font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white">{displayName?.charAt(0) || 'C'}</AvatarFallback>
+            <AvatarFallback className={cn('text-lg font-semibold', isDark ? 'text-white bg-gradient-to-br from-slate-600 to-slate-700' : 'text-gray-800 bg-gradient-to-br from-gray-200 to-gray-300')}>{displayName?.charAt(0) || 'C'}</AvatarFallback>
           </Avatar>
         </button>
 
@@ -51,7 +60,7 @@ export default function EmployerCard({
                   {displayName}
                 </button>
                 {companyDomain && (
-                  <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400">
+                  <span className={cn('ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium', isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-200')}>
                     <Briefcase className="h-3 w-3" />
                     {companyDomain}
                   </span>
@@ -107,7 +116,12 @@ export default function EmployerCard({
                   </Button>
                 </div>
               ) : (
-                <Button size="sm" onClick={() => onConnect?.(employer)} className="gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => onConnect?.(employer)}
+                  className="gap-2"
+                  style={!isDark ? { backgroundColor: '#000000', color: '#ffffff' } : undefined}
+                >
                   <UserPlus className="h-4 w-4" />
                   Connect
                 </Button>

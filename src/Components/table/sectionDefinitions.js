@@ -101,7 +101,6 @@ export const SECTION_SEQUENCE = [
 	SECTION_KEYS.adminManagement,
 	SECTION_KEYS.companies,
 	SECTION_KEYS.liahubCompanies,
-	SECTION_KEYS.leadingCompanies,
 ]
 
 export const SECTION_DEFINITIONS = {
@@ -172,6 +171,7 @@ export const SECTION_DEFINITIONS = {
 				'Notera',
 				'Tilldela/urvalsprocess',
 				'Info från UL',
+				'Status',
 			],
 		},
 		addEnabled: true,
@@ -252,6 +252,7 @@ export const SECTION_DEFINITIONS = {
 		upload: {
 			title: 'Upload Student Data (Excel)',
 			endpoint: '/dashboard/school/upload-students-excel',
+			templatePath: '/templates/student-upload-template.xlsx',
 			expectedColumns: [
 				'Date',
 				'Företag',
@@ -598,7 +599,7 @@ export const SECTION_DEFINITIONS = {
 			endpoint: '/dashboard/school/upload-companies-excel',
 			note: 'Flexible columns accepted. Recommended headers: Datum, Företag, Ort/land, Kontaktperson, Roll, Mejl, Telefon, Ftg org/reg nr.',
 			expectedColumns: [
-				'Date',
+				'Datum',
 				'Företag',
 				'Ort/land',
 				'Kontaktperson',

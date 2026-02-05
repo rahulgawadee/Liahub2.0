@@ -2,7 +2,7 @@
 
 @layer base {
 		:root {
-			/* Modern, clean palette */
+			/* Dark Mode (Default) */
 			--background: 0 0% 3.9%; /* Almost black */
 			--foreground: 0 0% 98%; /* White */
 			--card: 0 0% 7%;
@@ -18,6 +18,25 @@
 			--ring: 210 100% 50%;
 			--subtle-border: 0 0% 20%;
 		}
+
+		/* Light Mode */
+		html.light {
+			--background: 0 0% 100%; /* White */
+			--foreground: 0 0% 5%; /* Almost black */
+			--card: 0 0% 97%;
+			--card-foreground: 0 0% 5%;
+			--primary: 210 100% 50%;
+			--primary-foreground: 0 0% 100%;
+			--accent: 0 0% 88%;
+			--accent-foreground: 0 0% 5%;
+			--muted: 0 0% 90%;
+			--muted-foreground: 0 0% 40%;
+			--border: 0 0% 88%;
+			--input: 0 0% 95%;
+			--ring: 210 100% 50%;
+			--subtle-border: 0 0% 92%;
+		}
+
 		body { background-color: hsl(var(--background)); color: hsl(var(--foreground)); min-height: 100vh; }
 }
 
@@ -33,6 +52,17 @@
 	.text-primary-foreground { color: hsl(var(--primary-foreground)); }
 	.border-input { border-color: hsl(var(--input)); }
 	.border-subtle { border-color: hsl(var(--subtle-border)); }
+
+	/* Light mode specific utilities */
+	.light .border-white\/30 { @apply border-gray-300; }
+	.light .border-white\/50 { @apply border-gray-400; }
+	.light .bg-black { @apply bg-white; }
+	.light .text-white { @apply text-black; }
+	.light .bg-gray-900 { @apply bg-gray-100; }
+	.light .bg-gray-800 { @apply bg-gray-200; }
+	.light .bg-gray-700 { @apply bg-gray-300; }
+	.light .hover\:bg-gray-800:hover { @apply hover:bg-gray-200; }
+	.light .hover\:border-gray-600:hover { @apply hover:border-gray-400; }
 }
 /* In your global.css or index.css */
 .scrollbar-hide::-webkit-scrollbar {
@@ -102,4 +132,15 @@ body::-webkit-scrollbar,
   min-height: 100vh;
 }
 
+/* Override browser autofill styles to maintain dark theme */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: inset 0 0 0px 1000px black !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
 

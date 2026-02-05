@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { UserCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/hooks/useTheme'
 
 const AvatarContext = React.createContext()
 
@@ -49,7 +50,7 @@ export const AvatarImage = ({ src, alt = 'User avatar', className = '' }) => {
     <img
       src={src}
       alt={alt}
-      className={cn('absolute inset-0 h-full w-full object-cover', className)}
+      className={cn('absolute inset-0 h-full w-full object-cover transition-opacity duration-300', className)}
       onLoad={() => {
         setImageLoaded(true)
         setImageError(false)
@@ -63,23 +64,24 @@ export const AvatarImage = ({ src, alt = 'User avatar', className = '' }) => {
 }
 
 /**
- * AvatarFallback Component - Professional fallback icon display
+ * AvatarFallback Component - Professional fallback icon display with theme support
  * Shows UserCircle icon when no profile image is uploaded (like Facebook/LinkedIn)
  * NO initials, text, or background - icon only for consistency
  */
 export const AvatarFallback = ({ className = '' }) => {
   const { imageLoaded, imageError, hasImage } = React.useContext(AvatarContext)
+  const { isDark } = useTheme()
 
   // Show fallback only if there's no image or if image failed to load
   if (hasImage && imageLoaded && !imageError) {
     return null
   }
 
-  // Display professional user icon with bluish background
+  // Display professional user icon with theme-aware background
   return (
-    <div className={cn('absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800', className)}>
+    <div className={cn(`absolute inset-0 flex items-center justify-center transition-colors duration-300 ${isDark ? 'bg-gradient-to-br from-blue-900 to-blue-950' : 'bg-gradient-to-br from-blue-100 to-blue-200'}`, className)}>
       <UserCircle 
-        className="text-blue-100 dark:text-blue-200" 
+        className={`transition-colors duration-300 ${isDark ? 'text-blue-300' : 'text-blue-600'}`}
         strokeWidth={1.2}
         style={{ width: '70%', height: '70%' }} 
       />

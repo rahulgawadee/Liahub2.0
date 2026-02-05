@@ -2,9 +2,11 @@ import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/card'
 import { Button } from '@/Components/ui/button'
+import { useTheme } from '@/hooks/useTheme'
 import { X } from 'lucide-react'
 
 export const Dialog = ({ open, onOpenChange, children, allowOverflow = false }) => {
+  const { isDark } = useTheme()
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
@@ -28,7 +30,7 @@ export const Dialog = ({ open, onOpenChange, children, allowOverflow = false }) 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40"
         onClick={() => onOpenChange(false)}
       />
       <div className={`relative z-[10000] max-h-[90vh] max-w-4xl w-full mx-auto ${allowOverflow ? 'overflow-visible' : 'overflow-auto'}`}>
@@ -40,7 +42,7 @@ export const Dialog = ({ open, onOpenChange, children, allowOverflow = false }) 
 }
 
 export const DialogContent = ({ children, className = '' }) => (
-  <Card className={`shadow-2xl ${className}`}>
+  <Card className={`shadow-2xl transition-colors duration-300 ${className}`}>
     {children}
   </Card>
 )
@@ -52,13 +54,13 @@ export const DialogHeader = ({ children }) => (
 )
 
 export const DialogTitle = ({ children, className = '' }) => (
-  <CardTitle className={`text-xl font-semibold ${className}`}>
+  <CardTitle className={`text-xl font-semibold transition-colors duration-300 ${className}`}>
     {children}
   </CardTitle>
 )
 
 export const DialogDescription = ({ children, className = '' }) => (
-  <p className={`text-sm text-muted-foreground ${className}`}>
+  <p className={`text-sm transition-colors duration-300 ${className}`}>
     {children}
   </p>
 )
@@ -69,11 +71,14 @@ export const DialogBody = ({ children }) => (
   </CardContent>
 )
 
-export const DialogFooter = ({ children, className = '' }) => (
-  <div className={`flex justify-end gap-2 pt-4 border-t ${className}`}>
-    {children}
-  </div>
-)
+export const DialogFooter = ({ children, className = '' }) => {
+  const { isDark } = useTheme()
+  return (
+    <div className={`flex justify-end gap-2 pt-4 border-t transition-colors duration-300 ${isDark ? 'border-gray-800' : 'border-gray-200'} ${className}`}>
+      {children}
+    </div>
+  )
+}
 
 export const DialogClose = ({ onClick }) => (
   <Button

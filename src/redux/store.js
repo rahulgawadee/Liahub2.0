@@ -11,6 +11,7 @@ import jobsReducer from './slices/jobsSlice'
 import internshipsReducer from './slices/internshipsSlice'
 import applicationsReducer from './slices/applicationsSlice'
 import liaApplicationsReducer from './slices/lia/liaApplicationsSlice'
+import themeReducer from './slices/themeSlice'
 
 export const store = configureStore({
   reducer: {
@@ -25,6 +26,7 @@ export const store = configureStore({
     connections: connectionsReducer,
     notifications: notificationsReducer,
     messages: messagesReducer,
+    theme: themeReducer,
   },
 })
 

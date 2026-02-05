@@ -23,6 +23,7 @@ import { fetchUserProfile } from '@/redux/slices/usersSlice'
 import { followUser, addFollower } from '@/redux/slices/profileSlice'
 import { getImageUrl } from '@/lib/imageUtils'
 import { MapPin, Globe, Clock } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function ProfileView(){
   const { id } = useParams()
@@ -168,6 +169,8 @@ export default function ProfileView(){
 
   const { displayName, subtitle, isCompanyUser } = getDisplayNameWithSubtitle(normalizedUser)
 
+  const { isDark } = useTheme()
+
   const actionButtons = []
   if (status === 'connected') {
     actionButtons.push(
@@ -195,7 +198,12 @@ export default function ProfileView(){
     )
   } else {
     actionButtons.push(
-      <Button key="connect" onClick={onConnect}>
+      <Button
+        key="connect"
+        onClick={onConnect}
+        size="md"
+        style={!isDark ? { backgroundColor: '#000000', color: '#ffffff' } : undefined}
+      >
         Connect
       </Button>,
     )

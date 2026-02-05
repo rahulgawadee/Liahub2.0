@@ -46,6 +46,7 @@ export default function UserCard({
 }) {
   const navigate = useNavigate()
   const followHandler = onFollow || onFollowBack
+  const { isDark } = useTheme()
 
   if (!user) return null
 
@@ -198,7 +199,12 @@ export default function UserCard({
     }
 
     return (
-      <Button size="sm" onClick={handleConnect} className="w-full gap-2 cursor-pointer hover:scale-105 transition-all shadow-sm hover:shadow-md">
+      <Button
+        size="md"
+        onClick={handleConnect}
+        className="w-full gap-2 cursor-pointer hover:scale-105 transition-all shadow-sm hover:shadow-md"
+        style={!isDark ? { backgroundColor: '#000000', color: '#ffffff' } : undefined}
+      >
         <UserPlus className="h-4 w-4" />
         Connect
       </Button>
@@ -329,7 +335,7 @@ export default function UserCard({
             {badge && <Badge variant="default" className="shrink-0">{badge}</Badge>}
             {follower && <Badge variant="secondary" className="text-xs shrink-0">Follower</Badge>}
             {isCompanyUser && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 shrink-0">
+              <Badge variant="outline" className={cn('text-xs shrink-0', isDark ? 'bg-gray-800 text-gray-200 border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-200')}>
                 {user.companyProfile?.companyName ? 'Company' : user.schoolProfile?.schoolName ? 'School' : 'Organization'}
               </Badge>
             )}

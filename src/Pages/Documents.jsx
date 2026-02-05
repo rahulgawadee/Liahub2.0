@@ -8,6 +8,7 @@ import { Input } from '../Components/ui/input'
 import { Folder, UploadCloud, FileText, Trash2, CheckCircle } from 'lucide-react'
 import DocumentList from '@/Components/documents/DocumentList'
 import DocumentViewModal from '@/Components/documents/DocumentViewModal'
+import { useTheme } from '@/hooks/useTheme'
 
 function formatBytes(bytes) {
   if (!bytes) return '0 B'
@@ -18,6 +19,7 @@ function formatBytes(bytes) {
 
 export default function Documents(){
   const fileInputRef = useRef(null)
+  const { isDark } = useTheme()
   const [_uploads, setUploads] = useState([])
   const [pendingFiles, setPendingFiles] = useState([])
   const [showFolderModal, setShowFolderModal] = useState(false)

@@ -1,5 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
+import { useTheme } from '@/hooks/useTheme'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogClose } from '@/Components/ui/dialog'
 import { Label } from '@/Components/ui/label'
 import { Input } from '@/Components/ui/input'
@@ -21,6 +22,7 @@ export default function CreatePostingDialog({
   defaultJobType = 'Job',
   isSchool = false, // NEW: Flag to indicate if this is a school creating a job
 }) {
+  const { isDark } = useTheme()
   const accessToken = useSelector((state) => state.auth.accessToken)
   const [companies, setCompanies] = React.useState([])
   const [loadingCompanies, setLoadingCompanies] = React.useState(false)
@@ -94,7 +96,7 @@ export default function CreatePostingDialog({
 
   return (
     <Dialog open={open} onOpenChange={(value) => { if (!value) onClose?.() }}>
-      <DialogContent className="bg-slate-950 text-white border border-slate-800">
+      <DialogContent className={`${!isDark ? 'bg-white text-black border-gray-200' : ''}`}>
         <DialogHeader>
           <DialogTitle>Create a new posting</DialogTitle>
           <DialogClose onClick={onClose} />
@@ -108,7 +110,7 @@ export default function CreatePostingDialog({
                 placeholder="e.g. Frontend Engineer"
                 value={form.title}
                 onChange={(event) => updateField('title', event.target.value)}
-                className="bg-slate-900 border-slate-700 text-white"
+                className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                 required
               />
             </div>
@@ -123,7 +125,7 @@ export default function CreatePostingDialog({
                   id="posting-company"
                   value={form.companyId}
                   onChange={(event) => updateField('companyId', event.target.value)}
-                  className="bg-slate-900 border-slate-700 text-white"
+                  className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                   required
                   disabled={loadingCompanies}
                 >
@@ -143,7 +145,7 @@ export default function CreatePostingDialog({
                   placeholder="Your company"
                   value={form.company}
                   onChange={(event) => updateField('company', event.target.value)}
-                  className="bg-slate-900 border-slate-700 text-white"
+                  className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                   required
                 />
               )}
@@ -156,7 +158,7 @@ export default function CreatePostingDialog({
                 placeholder="City, Country"
                 value={form.location}
                 onChange={(event) => updateField('location', event.target.value)}
-                className="bg-slate-900 border-slate-700 text-white"
+                className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                 required
               />
             </div>
@@ -168,7 +170,7 @@ export default function CreatePostingDialog({
                   id="posting-job-type"
                   value={form.jobType}
                   onChange={(event) => updateField('jobType', event.target.value)}
-                  className="bg-slate-900 border-slate-700 text-white"
+                  className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                 >
                   {(postingTypes.length ? postingTypes : JOB_TYPES).map((option) => (
                     <SelectOption key={option} value={option}>
@@ -183,7 +185,7 @@ export default function CreatePostingDialog({
                   id="posting-employment-type"
                   value={form.employmentType}
                   onChange={(event) => updateField('employmentType', event.target.value)}
-                  className="bg-slate-900 border-slate-700 text-white"
+                  className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                 >
                   {EMPLOYMENT_TYPES.map((option) => (
                     <SelectOption key={option} value={option}>
@@ -198,7 +200,7 @@ export default function CreatePostingDialog({
                   id="posting-location-type"
                   value={form.locationType}
                   onChange={(event) => updateField('locationType', event.target.value)}
-                  className="bg-slate-900 border-slate-700 text-white"
+                  className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                 >
                   {LOCATION_TYPES.map((option) => (
                     <SelectOption key={option} value={option}>
@@ -213,7 +215,7 @@ export default function CreatePostingDialog({
                   id="posting-seniority"
                   value={form.seniority}
                   onChange={(event) => updateField('seniority', event.target.value)}
-                  className="bg-slate-900 border-slate-700 text-white"
+                  className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                 >
                   {SENIORITY_LEVELS.map((option) => (
                     <SelectOption key={option} value={option}>
@@ -233,7 +235,7 @@ export default function CreatePostingDialog({
                   placeholder="e.g. $120K - $150K per year"
                   value={form.compensation}
                   onChange={(event) => updateField('compensation', event.target.value)}
-                  className="bg-slate-900 border-slate-700 text-white"
+                  className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                 />
               </div>
             )}
@@ -248,7 +250,7 @@ export default function CreatePostingDialog({
                     placeholder="e.g. 6 months, 3 months"
                     value={form.duration}
                     onChange={(event) => updateField('duration', event.target.value)}
-                    className="bg-slate-900 border-slate-700 text-white"
+                    className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                     required
                   />
                 </div>
@@ -261,7 +263,7 @@ export default function CreatePostingDialog({
                       placeholder="e.g. Jane Doe"
                       value={form.mentor}
                       onChange={(event) => updateField('mentor', event.target.value)}
-                      className="bg-slate-900 border-slate-700 text-white"
+                      className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                     />
                   </div>
 
@@ -272,7 +274,7 @@ export default function CreatePostingDialog({
                       placeholder="e.g. John Smith"
                       value={form.supervisor}
                       onChange={(event) => updateField('supervisor', event.target.value)}
-                      className="bg-slate-900 border-slate-700 text-white"
+                      className={`${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-300 text-black'}`}
                     />
                   </div>
                 </div>
@@ -287,15 +289,28 @@ export default function CreatePostingDialog({
                 value={form.description}
                 onChange={(event) => updateField('description', event.target.value)}
                 rows={4}
-                className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'border-slate-700 bg-slate-900 text-white' : 'border-gray-300 bg-gray-50 text-black'}`}
               />
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={onClose}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onClose}
+                className={`${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-black'}`}
+                style={!isDark ? { backgroundColor: '#e5e7eb', color: '#000' } : undefined}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Create posting</Button>
+              <Button
+                type="submit"
+                variant="default"
+                className={`${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}
+                style={!isDark ? { backgroundColor: '#000000', color: '#ffffff' } : undefined}
+              >
+                Create posting
+              </Button>
             </div>
           </form>
         </DialogBody>

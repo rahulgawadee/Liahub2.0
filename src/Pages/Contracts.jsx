@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux'
 import { SidebarProvider, SidebarInset } from '@/Components/ui/sidebar'
 import { AppSidebar } from '@/Components/sidebar/app-sidebar'
 import { SiteHeader } from '@/Components/sidebar/site-header'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function Contracts() {
   const [template, setTemplate] = useState(null)
@@ -16,6 +17,7 @@ export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
+  const { isDark } = useTheme()
   
   const user = useSelector((state) => state.auth.user)
   const isEducationStaff = user?.roles?.some(role => 

@@ -1668,14 +1668,16 @@ export default function DataTable() {
                           />
 
                           <div
-                            className="relative h-full w-3 group cursor-help"
-                            title={companyTheme?.label || 'Company status'}
-                            aria-label={companyTheme?.label || 'Company status'}
+                            className={`relative h-full w-3 group ${companyTheme?.label ? 'cursor-help' : ''}`}
+                            title={companyTheme?.label || undefined}
+                            aria-label={companyTheme?.label || undefined}
                           >
                             <div className="absolute inset-0" />
-                            <div className="pointer-events-none absolute left-3 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/85 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                              {companyTheme?.label || 'Company status'}
-                            </div>
+                            {companyTheme?.label ? (
+                              <div className="pointer-events-none absolute left-3 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/85 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                                {companyTheme.label}
+                              </div>
+                            ) : null}
                           </div>
                         </td>
                       )}

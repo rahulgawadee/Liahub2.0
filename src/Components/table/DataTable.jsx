@@ -42,6 +42,7 @@ import apiClient from '@/lib/apiClient'
 import VerificationBadge from '@/Components/shared/VerificationBadge'
 import { getImageUrl } from '@/lib/imageUtils'
 import { StatusCard } from '@/Components/ui/status-card'
+import RowHoverShiftControls from '@/Components/table/RowHoverShiftControls'
 
 const STATUS_CLASSES = {
   Active: 'bg-emerald-500/15 text-emerald-300',
@@ -460,7 +461,18 @@ export default function DataTable() {
 
   // Lazy render guard for table rows
   const tableRef = React.useRef(null)
+  const scrollContainerRef = React.useRef(null)
   const [tableVisible, setTableVisible] = React.useState(false)
+
+  const scrollTableHorizontally = React.useCallback((delta) => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    try {
+      el.scrollBy({ left: delta, behavior: 'smooth' })
+    } catch (e) {
+      el.scrollLeft = (el.scrollLeft || 0) + delta
+    }
+  }, [])
 
   React.useEffect(() => {
     if (tableVisible) return
@@ -1585,28 +1597,30 @@ export default function DataTable() {
                   : 'No data available for this section yet.'}
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] bg-[#0a0a0a] border border-[#0a0a0a]">
+            <div ref={scrollContainerRef} className="overflow-x-auto rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] bg-[#0a0a0a] border border-[#0a0a0a]">
               <table className="w-full min-w-[720px] table-auto text-sm">
                 <thead className="text-xs uppercase tracking-wider bg-[#0a0a0a] border-b border-white/10">
-                  <tr className="h-14">
+                  <tr className="h-12">
+                    <th className="sticky left-0 z-20 w-10 bg-[#0a0a0a] px-1" aria-hidden="true" />
                     {(active === SECTION_KEYS.companies || active === SECTION_KEYS.liahubCompanies) && (
                       <th className="w-2 px-0" aria-hidden="true" />
                     )}
                     {columns.map((column) => (
-                      <th key={column.key} className="px-5 text-left font-bold text-white">
+                      <th key={column.key} className="px-3 text-left font-bold text-white">
                         <div className="flex items-center gap-2">
                           {column.label}
                         </div>
                       </th>
                     ))}
                     {(allowEdit || isEducationManagerSection || active === SECTION_KEYS.liahubCompanies || (active === SECTION_KEYS.myStudents && isEducationManager)) && (
-                      <th className="px-5 text-left font-bold text-white">
+                      <th className="px-3 text-left font-bold text-white">
                         <div className="flex items-center gap-2">
                           <Shield className="h-3.5 w-3.5" />
                           Actions
                         </div>
                       </th>
                     )}
+                    <th className="sticky right-0 z-20 w-10 bg-[#0a0a0a] px-1" aria-hidden="true" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
@@ -1621,7 +1635,7 @@ export default function DataTable() {
                     return (
                     <tr
                       key={row.id}
-                      className="h-16 transition-all hover:bg-white/5 cursor-pointer group bg-[#0a0a0a]"
+                      className="h-14 transition-all hover:bg-white/5 cursor-pointer group bg-[#0a0a0a]"
                       style={companyTheme ? { backgroundImage: companyTheme.gradient } : undefined}
                       onClick={(e) => {
                         if (e.target.closest('[data-no-detail-on-click]')) return
@@ -1630,6 +1644,20 @@ export default function DataTable() {
                         setDetailOpen(true)
                       }}
                       >
+                        <td
+                        className="sticky left-0 z-10 w-10 bg-[#0a0a0a] px-1 align-middle"
+                          data-no-detail-on-click
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-center">
+                            <RowHoverShiftControls
+                              showRight={false}
+                              onLeft={() => scrollTableHorizontally(-260)}
+                            />
+                          </div>
+                        </td>
+
                       {showCompanyStyling && (
                         <td className="relative w-3 px-0 py-0 align-middle" aria-hidden="true">
                           <div
@@ -1653,7 +1681,7 @@ export default function DataTable() {
                       )}
                       {columns.map((column) => {
                         const title = buildTitle(column, rowWithSectionKey)
-                        const cellClasses = ['px-5 py-4 align-middle']
+                        const cellClasses = ['px-3 py-2.5 align-middle']
                         if (column.grow) cellClasses.push('max-w-[280px] whitespace-normal break-words')
                         else cellClasses.push('max-w-[240px] whitespace-nowrap overflow-hidden text-ellipsis')
 
@@ -1669,7 +1697,7 @@ export default function DataTable() {
                       })}
                       {(rowAllowsEdit || active === SECTION_KEYS.liahubCompanies || isEducationManagerSection || (active === SECTION_KEYS.myStudents && isEducationManager)) && (
                         <td
-                          className="px-5 py-4 text-right"
+                          className="px-3 py-2.5 text-right"
                           data-no-detail-on-click
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
@@ -1704,6 +1732,20 @@ export default function DataTable() {
                           />
                         </td>
                       )}
+
+                      <td
+                        className="sticky right-0 z-10 w-10 bg-[#0a0a0a] px-1 align-middle"
+                        data-no-detail-on-click
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-center">
+                          <RowHoverShiftControls
+                            showLeft={false}
+                            onRight={() => scrollTableHorizontally(260)}
+                          />
+                        </div>
+                      </td>
                     </tr>
                   )})}
                 </tbody>

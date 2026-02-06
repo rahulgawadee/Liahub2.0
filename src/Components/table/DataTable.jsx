@@ -1886,38 +1886,48 @@ export default function DataTable() {
       </Dialog>
 
       <Dialog open={programmeDialogOpen} onOpenChange={setProgrammeDialogOpen} allowOverflow>
-        <DialogContent className="w-full max-w-md mx-auto text-left">
-          <div className={`rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)] ${isDark ? 'bg-[#0a0a0a] border border-white/10' : 'bg-white border border-gray-200'}`} >
-            <DialogHeader>
-              <DialogTitle className="text-base font-semibold text-white">Select programme</DialogTitle>
-              <DialogClose onClick={() => setProgrammeDialogOpen(false)} />
-            </DialogHeader>
-            <DialogBody>
-              <div className="flex flex-col gap-3">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Which NBI/Commercial Administration programme?</Label>
-                <Select
-                  value={selectedProgramme}
-                  onChange={(event) => setSelectedProgramme(event.target.value)}
-                  required
-                  className="rounded-xl"
-                >
-                  {programmeOptions.map((option) => (
-                    <SelectOption key={option} value={option}>
-                      {option}
-                    </SelectOption>
-                  ))}
-                </Select>
-              </div>
-            </DialogBody>
-            <DialogFooter className="justify-start gap-2 mt-4">
-              <Button type="button" variant="outline" onClick={() => setProgrammeDialogOpen(false)} className="rounded-lg">
-                Cancel
-              </Button>
-              <Button type="button" onClick={handleProgrammeActionConfirm} disabled={!selectedProgramme} className="rounded-lg">
-                Continue
-              </Button>
-            </DialogFooter>
-          </div>
+        <DialogContent
+          className={`w-full max-w-md mx-auto text-left rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.6)] ${
+            isDark ? 'bg-[#0a0a0a] border border-white/10' : 'bg-white border border-gray-200'
+          }`}
+        >
+          <DialogHeader>
+            <DialogTitle className={`text-base font-semibold ${isDark ? 'text-white' : 'text-black'}`}>
+              Select programme
+            </DialogTitle>
+            <DialogClose onClick={() => setProgrammeDialogOpen(false)} />
+          </DialogHeader>
+          <DialogBody>
+            <div className="flex flex-col gap-3">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Which NBI/Commercial Administration programme?</Label>
+              <Select
+                value={selectedProgramme}
+                onChange={(event) => setSelectedProgramme(event.target.value)}
+                required
+                className="rounded-xl"
+              >
+                {programmeOptions.map((option) => (
+                  <SelectOption key={option} value={option}>
+                    {option}
+                  </SelectOption>
+                ))}
+              </Select>
+            </div>
+          </DialogBody>
+          <DialogFooter className="justify-start gap-2 mt-4">
+            <Button type="button" variant="outline" onClick={() => setProgrammeDialogOpen(false)} className="rounded-lg">
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleProgrammeActionConfirm}
+              disabled={!selectedProgramme}
+              className={`rounded-lg ${isDark ? '' : 'hover:bg-black/90'}`}
+              style={isDark ? undefined : { backgroundColor: 'black', color: 'white' }}
+            >
+              Continue
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
@@ -2581,7 +2591,7 @@ function RecordEditorDialog({
             </div>
 
             {/* Company status tag for company-like records */}
-            {['company','lead_company'].includes(definition?.recordType) && (
+            {['company','lead_company','liahub_company'].includes(definition?.recordType) && (
               <div className="mt-2">
                 <div className="flex flex-col gap-2">
                   <Label>Company status</Label>
@@ -2955,7 +2965,7 @@ function RowDetailDialog({ open, onOpenChange, row, columns, definition }) {
                 )
               })}
               {/* Show status indicator as a field for company records */}
-              {['company', 'lead_company'].includes(definition?.recordType) && (
+              {['company', 'lead_company', 'liahub_company'].includes(definition?.recordType) && (
                 <div className={`rounded-xl border p-4 shadow-sm transition-colors duration-300 ${
                   isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'
                 }`}>
